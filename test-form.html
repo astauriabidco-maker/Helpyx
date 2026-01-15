@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Advanced Ticket Form</title>
+</head>
+<body>
+    <h1>Test Formulaire Avancé</h1>
+    <form id="testForm">
+        <input type="text" name="titre" placeholder="Titre" required><br><br>
+        <textarea name="description" placeholder="Description" required></textarea><br><br>
+        <select name="categorie" required>
+            <option value="">Catégorie</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+        </select><br><br>
+        <select name="priorite" required>
+            <option value="">Priorité</option>
+            <option value="basse">Basse</option>
+            <option value="moyenne">Moyenne</option>
+            <option value="haute">Haute</option>
+            <option value="critique">Critique</option>
+        </select><br><br>
+        <button type="submit">Créer Ticket</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/api/tickets/advanced', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Résultat:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>Erreur:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

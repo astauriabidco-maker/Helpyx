@@ -1,0 +1,1387 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id              String   @id @default(cuid())
+  nom             String
+  slug            String   @unique  // URL-friendly company identifier
+  domaine         String?  @unique  // Custom domain (optional)
+  logo            String?
+  description     String?
+  secteur         String?  // Industry sector
+  taille          String?  // Company size (startup, pme, grand_compte)
+  pays            String?
+  ville           String?
+  telephone       String?
+  emailContact    String
+  statut          String   @default("active") // active, suspended, trial
+  planAbonnement  String   @default("starter") // starter, pro, enterprise
+  dateFinEssai    DateTime?
+  limiteUtilisateurs Int   @default(5)
+  settings        String?  // JSON for company-specific settings
+  stripeCustomerId String? // Stripe customer ID
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  tickets         Ticket[]
+  inventory       Inventory[]
+  articles        Article[]
+  subscriptions   Subscription[]
+  digitalTwins    DigitalTwin[]
+  
+  @@map("companies")
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  companyId       String
+  planId          String
+  statut          String   @default("active") // active, cancelled, expired, trial
+  dateDebut       DateTime @default(now())
+  dateFin         DateTime
+  prixMensuel     Float
+  limiteUtilisateurs Int
+  features        String?  // JSON array of enabled features
+  autoRenew       Boolean  @default(true)
+  paymentMethodId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan            Plan    @relation(fields: [planId], references: [id])
+  
+  @@map("subscriptions")
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  nom             String   @unique
+  slug            String   @unique
+  description     String
+  prixMensuel     Float
+  prixAnnuel      Float?
+  limiteUtilisateurs Int
+  features        String   // JSON array of features
+  rolesAutorises  String   // JSON array of allowed roles
+  maxTickets      Int?     // Max tickets per month
+  maxInventory    Int?     // Max inventory items
+  supportLevel    String   @default("basic") // basic, priority, dedicated
+  statut          String   @default("active")
+  ordre           Int      @default(0)
+  stripePriceId   String?  // Stripe price ID
+  stripeProductId String?  // Stripe product ID
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  subscriptions   Subscription[]
+  
+  @@map("plans")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  password        String?   // Hash du mot de passe pour JWT
+  role            Role      @default(CLIENT)
+  companyId       String?   // Multi-tenant: company this user belongs to
+  emailVerified   DateTime?
+  image           String?
+  phone           String?   // Numéro de téléphone pour SMS
+  lastLoginAt     DateTime?
+  isActive        Boolean   @default(true)
+  preferences     String?   // JSON for user preferences
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Champs pour la récupération de mot de passe
+  resetToken      String?   @unique
+  resetTokenExpiry DateTime?
+  
+  // Champs pour la vérification email
+  emailToken      String?   @unique
+  emailTokenExpiry DateTime?
+  
+  // Préférences de notification
+  notification_email    Boolean @default(true)
+  notification_sms      Boolean @default(false)
+  notification_browser  Boolean @default(true)
+  
+  // Gamification
+  points        Int @default(0)
+  level         Int @default(1)
+  streak        Int @default(0)
+  lastActiveAt  DateTime @default(now())
+  totalTicketsResolved Int @default(0)
+  avgResolutionTime Float @default(0)
+  
+  // Refresh tokens JWT
+  refreshTokens   RefreshToken[]
+
+  // Relations
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tickets         Ticket[]
+  assignedTickets Ticket[] @relation("TicketAssignment")
+  comments        Comment[]
+  notifications   Notification[] @relation("UserNotifications")
+  accounts        Account[]
+  sessions        Session[]
+  sMSLogs         SMSLog[]
+  articles        Article[]
+  achievements    UserAchievement[]
+  activities      Activity[]
+  digitalTwins    DigitalTwin[]
+  arAnnotations   ARAnnotation[]
+  arvrParticipantSessions    ARVRParticipant[]
+  expertTeleportationsAsExpert ExpertTeleportation[] @relation("ExpertTeleportationExpert")
+  expertTeleportationsAsClient ExpertTeleportation[] @relation("ExpertTeleportationClient")
+  
+  // Marketplace relations
+  expertProfile         Expert?  @relation("ExpertProfile")
+  clientGigs            Gig[]    @relation("ClientGigs")
+  expertGigs            Gig[]    @relation("ExpertGigs")
+  clientReviews         Review[] @relation("ClientReviews")
+  
+  // Behavioral relations
+  behavioralAdaptations BehavioralAdaptation[]
+
+  @@unique([email, companyId]) // Unique email per company
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Ticket {
+  id                    Int      @id @default(autoincrement())
+  description           String
+  status                TicketStatus @default(OUVERT)
+  photoPath             String?  @map("photo_path")
+  
+  // Champs du formulaire avancé
+  titre                 String?
+  categorie             String?
+  priorite              Priorite @default(MOYENNE)
+  type_panne            TypePanne?
+  equipement_type       String?
+  marque                String?
+  modele                String?
+  numero_serie          String?
+  numero_inventaire     String?
+  date_achat            DateTime?
+  garantie              Boolean  @default(false)
+  fin_garantie          DateTime?
+  systeme_exploitation  String?
+  version_os            String?
+  ram                   String?
+  processeur            String?
+  stockage              String?
+  reseau                String?
+  site                  String?
+  batiment              String?
+  etage                 String?
+  bureau                String?
+  telephone_contact     String?
+  email_contact         String?
+  symptomes             String?  // JSON array
+  messages_erreur       String?  // JSON array
+  logiciels_concernes   String?  // JSON array
+  etapes_reproduire     String?
+  solutions_testees     String?
+  impact_travail        String?
+  utilisateurs_affectes String?
+  date_limite           DateTime?
+  acces_distant         Boolean  @default(false)
+  notification_email    Boolean  @default(true)
+  notification_sms      Boolean  @default(false)
+  consentement_donnees  Boolean  @default(false)
+  
+  // Métadonnées email pour tickets créés par email
+  emailMessageId String?  @map("email_message_id")
+  emailFrom       String?  @map("email_from")
+  emailTo         String?  @map("email_to")
+  emailDate       DateTime? @map("email_date")
+  
+  // Nouveaux champs pour l'assignation et les tags
+  assignedToId          String?  @map("assigned_to_id")
+  tags                  String?  // JSON array of tags
+  estimatedResolutionTime DateTime? @map("estimated_resolution_time")
+  actualResolutionTime  DateTime? @map("actual_resolution_time")
+  
+  // Multi-tenant
+  companyId             String
+  userId                String
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo            User?    @relation("TicketAssignment", fields: [assignedToId], references: [id])
+  comments              Comment[]
+  files                 TicketFile[]
+  notifications         Notification[] @relation("TicketNotifications")
+  inventoryItems        TicketInventoryItem[]
+
+  @@map("tickets")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  type      CommentType @default(PUBLIC)
+  userId    String
+  ticketId  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model TicketFile {
+  id       Int    @id @default(autoincrement())
+  nom      String
+  taille   Int
+  type     String
+  chemin   String?
+  ticketId Int
+  
+  // Relations
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_files")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("refresh_tokens")
+}
+
+// Modèle pour les notifications
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType @default(TICKET_ASSIGNED)
+  read      Boolean  @default(false)
+  userId    String
+  ticketId  Int?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  ticket Ticket? @relation("TicketNotifications", fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Modèle pour les logs SMS
+model SMSLog {
+  id        String   @id @default(cuid())
+  to        String
+  body      String
+  from      String
+  status    String   // sent, failed, pending
+  sid       String?  // Twilio message SID
+  error     String?
+  ticketId  Int?
+  userId    String?
+  type      String   @default("general")
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("sms_logs")
+}
+
+// Modèle pour la gestion des pièces et stock
+model Inventory {
+  id              String   @id @default(cuid())
+  nom             String
+  reference       String?  @unique
+  description     String?
+  categorie       String?  // ex: RAM, CPU, GPU, SSD, etc.
+  quantite        Int      @default(0)
+  seuilAlerte     Int      @default(5)  // Seuil pour alerte stock bas
+  coutUnitaire    Float?   // Coût par unité
+  fournisseur     String?  // Fournisseur principal
+  emplacement     String?  // Emplacement dans le stock
+  specifications  String?  // JSON pour détails techniques
+  dateDernierInventaire DateTime? @map("date_dernier_inventaire")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Multi-tenant
+  companyId       String
+
+  // Relations
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketItems    TicketInventoryItem[]
+  restockOrders  RestockOrder[]
+
+  @@unique([reference, companyId]) // Unique reference per company
+  @@map("inventory")
+}
+
+// Modèle pour lier les pièces aux tickets
+model TicketInventoryItem {
+  id          String   @id @default(cuid())
+  ticketId    Int
+  inventoryId String
+  quantite    Int      @default(1)
+  type        String   @default("UTILISATION") // UTILISATION, RESERVE, COMMANDE
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ticket    Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_inventory_items")
+}
+
+// Modèle pour les commandes de réapprovisionnement
+model RestockOrder {
+  id          String   @id @default(cuid())
+  inventoryId String
+  quantite    Int
+  coutTotal   Float?
+  fournisseur String?
+  statut      String   @default("EN_ATTENTE") // EN_ATTENTE, COMMANDE, RECU, ANNULE
+  dateCommande DateTime @default(now()) @map("date_commande")
+  dateReception DateTime? @map("date_reception")
+  notes       String?
+  createdBy   String?  @map("created_by")
+
+  // Relations
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@map("restock_orders")
+}
+
+// Modèle pour la base de connaissances
+model Article {
+  id          String   @id @default(cuid())
+  titre       String
+  contenu     String   // Contenu HTML ou Markdown
+  resume      String?  // Résumé pour aperçu
+  categorie   String?  // ex: Hardware, Software, Réseau, etc.
+  tags        String?  // JSON array de tags
+  difficulte  String   @default("MOYEN") // FACILE, MOYEN, DIFFICILE
+  tempsLecture Int?    @default(5) // Temps de lecture en minutes
+  ordre       Int      @default(0) // Ordre d'affichage
+  publie      Boolean  @default(false)
+  auteurId    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Multi-tenant
+  companyId   String
+
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  auteur      User?    @relation(fields: [auteurId], references: [id], onDelete: SetNull)
+
+  @@map("articles")
+}
+
+// Enums pour les types de données
+enum TicketStatus {
+  OUVERT
+  EN_DIAGNOSTIC
+  EN_REPARATION
+  REPARÉ
+  FERMÉ
+  ANNULÉ
+}
+
+enum Priorite {
+  BASSE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+enum TypePanne {
+  HARDWARE
+  SOFTWARE
+  RÉSEAU
+  AUTRE
+}
+
+enum CommentType {
+  PUBLIC
+  INTERNE
+  SYSTÈME
+}
+
+enum NotificationType {
+  TICKET_ASSIGNED
+  TICKET_UPDATED
+  TICKET_RESOLVED
+  COMMENT_ADDED
+  SYSTEM_ANNOUNCEMENT
+}
+
+// Tables pour le module BI Prédictif
+model PredictiveAnalysis {
+  id          String   @id @default(cuid())
+  metric      String   // revenue, tickets, satisfaction, etc.
+  currentValue Float   // Valeur actuelle
+  predictedValue Float // Valeur prédite
+  confidence   Float   // Niveau de confiance (0-1)
+  period       String   // 7d, 30d, 90d
+  trend        String   // upward, downward, stable
+  forecastData Json    // Données de prévision détaillées
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("predictive_analyses")
+}
+
+model BiIntegration {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // powerbi, excel, tableau, google-sheets
+  config      Json     // Configuration spécifique à l'intégration
+  status      String   @default("active") // active, inactive, error
+  lastSync    DateTime?
+  syncData    Json?    // Données de synchronisation
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("bi_integrations")
+}
+
+model BiAlert {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // revenue, performance, satisfaction
+  metric      String   // metric_name
+  operator    String   // >, <, =, >=, <=
+  threshold   Float    // seuil d'alerte
+  enabled     Boolean  @default(true)
+  emailRecipients Json? // Liste des emails pour notification
+  lastTriggered DateTime?
+  triggerCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  notifications BiNotification[]
+  
+  @@map("bi_alerts")
+}
+
+// Tables pour le module de Personnalisation Comportementale
+model BehavioralProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  userStyle         String   @default("textual") // visual, textual, auditory, kinesthetic
+  preferredResponse String   @default("detailed") // detailed, quick, step-by-step, visual
+  emotionalState    String   @default("neutral") // frustrated, confident, confused, satisfied, impatient
+  communicationStyle String  @default("casual") // formal, casual, technical, simplified
+  urgencyLevel      String   @default("low") // low, medium, high, critical
+  technicalProficiency String @default("intermediate") // beginner, intermediate, advanced, expert
+  messageFrequency  Float    @default(0) // messages per minute
+  sentimentScore    Float    @default(0) // -1 to 1
+  interactionCount  Int      @default(0)
+  lastUpdated       DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  
+  // Relations
+  adaptations       BehavioralAdaptation[]
+  sessions          BehavioralSession[]
+  
+  @@map("behavioral_profiles")
+}
+
+model BehavioralAdaptation {
+  id                String   @id @default(cuid())
+  userId            String
+  ruleId            String
+  ruleName          String
+  triggerType       String   // frustration, urgency, learning_style, technical_level
+  triggerConfidence Float    // 0-1
+  actionType        String   // escalate, adapt_communication, change_interface, provide_resources
+  actionParameters  Json     // Paramètres de l'adaptation
+  effectiveness     Float    @default(0) // 0-1, score d'efficacité
+  userFeedback      String?  // positive, neutral, negative
+  timestamp         DateTime @default(now())
+  
+  // Relations
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile           BehavioralProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("behavioral_adaptations")
+}
+
+model BehavioralSession {
+  id                String   @id @default(cuid())
+  userId            String
+  sessionId         String   @unique
+  startTime         DateTime @default(now())
+  endTime           DateTime?
+  messageCount      Int      @default(0)
+  averageResponseTime Float  @default(0) // seconds
+  sentimentEvolution Json?   // Évolution du sentiment sur la session
+  detectedStyles    Json?    // Styles détectés pendant la session
+  adaptationCount   Int      @default(0)
+  sessionScore      Float    @default(0) // Score global de la session
+  
+  // Relations
+  profile           BehavioralProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("behavioral_sessions")
+}
+
+model AdaptationRule {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  triggerType       String   // frustration, urgency, learning_style, technical_level
+  triggerConditions Json     // Conditions de déclenchement
+  triggerThreshold  Float    // Seuil de déclenchement
+  actionType        String   // escalate, adapt_communication, change_interface, provide_resources
+  actionParameters  Json     // Paramètres de l'action
+  priority          Int      @default(5) // 1-10, plus bas = plus prioritaire
+  enabled           Boolean  @default(true)
+  successRate       Float    @default(0) // Taux de succès
+  usageCount        Int      @default(0)
+  lastUsed          DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("adaptation_rules")
+}
+
+model BiNotification {
+  id          String   @id @default(cuid())
+  alertId     String
+  type        String
+  message     String
+  severity    Int      // 1-5 (1=low, 5=critical)
+  data        Json?    // Données contextuelles
+  sentAt      DateTime @default(now())
+  
+  // Relations
+  alert       BiAlert  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  
+  @@map("bi_notifications")
+}
+
+model UserDashboard {
+  id          String   @id @default(cuid())
+  userId      String
+  role        String   // ceo, cfo, coo, cmo, executive
+  config      Json     // Configuration personnalisée du tableau de bord
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, role])
+  @@map("user_dashboards")
+}
+
+model CrmErpIntegration {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // salesforce, hubspot, sap, netsuite
+  config      Json     // Configuration API et authentification
+  status      String   @default("active") // active, inactive, error
+  lastSync    DateTime?
+  syncStats   Json?    // Statistiques de synchronisation
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("crm_erp_integrations")
+}
+
+model Customer360 {
+  id                  String   @id @default(cuid())
+  customerId          String
+  source              String   // support, crm, erp, billing
+  data                Json     // Données enrichies du client
+  riskLevel           String   // low, medium, high
+  churnProbability    Float?
+  ltv                 Float?
+  insights            Json?    // Insights générés par IA
+  lastUpdated         DateTime @default(now())
+  
+  @@unique([customerId, source])
+  @@map("customer_360")
+}
+
+enum Role {
+  CLIENT
+  AGENT
+  ADMIN
+}
+
+// Modèles de Gamification
+model Achievement {
+  id          String           @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  points      Int
+  category    AchievementCategory
+  target      Int?             // Objectif à atteindre
+  createdAt   DateTime         @default(now())
+  
+  // Relations
+  userAchievements UserAchievement[]
+  
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String       @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime     @default(now())
+  progress      Int          @default(0)
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  userId      String
+  type        ActivityType
+  description String
+  points      Int
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("activities")
+}
+
+model Leaderboard {
+  id          String   @id @default(cuid())
+  userId      String
+  companyId   String?
+  period      String   // daily, weekly, monthly, all-time
+  rank        Int
+  points      Int
+  ticketsResolved Int?
+  avgResolutionTime Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, companyId, period])
+  @@map("leaderboards")
+}
+
+enum AchievementCategory {
+  SPEED
+  QUALITY
+  CONSISTENCY
+  EXPERTISE
+  TEAMWORK
+}
+
+// Modèles pour le Jumeau Numérique & Monitoring Prédictif
+model DigitalTwin {
+  id              String   @id @default(cuid())
+  equipmentId     String   @unique
+  name            String
+  type            String   // pc, server, printer, network
+  model           String?
+  manufacturer    String?
+  serialNumber    String?  @map("serial_number")
+  location        String?
+  userId          String?  // Utilisateur principal
+  status          String   @default("online") // online, offline, warning, critical
+  healthScore     Int      @default(100) // 0-100
+  lastSeen        DateTime @default(now()) @map("last_seen")
+  
+  // Spécifications techniques
+  specifications   Json?    // CPU, RAM, Storage, OS, etc.
+  
+  // Multi-tenant
+  companyId       String
+  
+  // Relations
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sensorData      SensorData[]
+  predictions     Prediction[]
+  maintenance     MaintenanceRecord[]
+  diagnostics     DiagnosticRecord[]
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("digital_twins")
+}
+
+model SensorData {
+  id              String   @id @default(cuid())
+  equipmentId     String   @map("equipment_id")
+  sensorType      String   // temperature, cpu_usage, memory_usage, disk_usage, network_latency
+  value           Float
+  unit            String?  // °C, %, ms, etc.
+  status          String   @default("normal") // normal, warning, critical
+  thresholdMin    Float?   @map("threshold_min")
+  thresholdMax    Float?   @map("threshold_max")
+  metadata        Json?    // Données supplémentaires
+  timestamp       DateTime @default(now())
+  
+  // Relations
+  equipment       DigitalTwin @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  @@index([equipmentId, sensorType, timestamp])
+  @@map("sensor_data")
+}
+
+model Prediction {
+  id              String   @id @default(cuid())
+  equipmentId     String   @map("equipment_id")
+  predictionType  String   // failure, maintenance, performance
+  probability     Float    // 0-100
+  timeframe       String   // "7 jours", "30 jours", etc.
+  confidence      Float    // 0-100
+  impact          String?  // low, medium, high, critical
+  costAvoidance   String?  // Estimation des coûts évités
+  issues          Json?    // Array of detected issues
+  recommendations Json?    // Array of recommendations
+  modelVersion    String   @default("v1.0") @map("model_version")
+  dataSource      String   @default("AI_Predictive") @map("data_source")
+  
+  // Statut de la prédiction
+  status          String   @default("active") // active, resolved, false_positive
+  
+  // Relations
+  equipment       DigitalTwin @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  validFrom       DateTime @default(now()) @map("valid_from")
+  validUntil      DateTime @map("valid_until")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("predictions")
+}
+
+model MaintenanceRecord {
+  id              String   @id @default(cuid())
+  equipmentId     String   @map("equipment_id")
+  type            String   // preventive, corrective, emergency
+  priority        String   @default("medium") // low, medium, high, critical
+  description     String
+  technician      String?
+  estimatedCost   Float?   @map("estimated_cost")
+  actualCost      Float?   @map("actual_cost")
+  estimatedDuration Int?    @map("estimated_duration") // en minutes
+  actualDuration  Int?     @map("actual_duration")
+  
+  // Statut
+  status          String   @default("scheduled") // scheduled, in_progress, completed, cancelled
+  
+  // Planification
+  scheduledDate   DateTime? @map("scheduled_date")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  
+  // Résultats
+  result          String?  // success, partial, failed
+  notes           String?
+  nextMaintenanceDate DateTime? @map("next_maintenance_date")
+  
+  // Relations
+  equipment       DigitalTwin @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  createdBy       String?  @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("maintenance_records")
+}
+
+model DiagnosticRecord {
+  id              String   @id @default(cuid())
+  equipmentId     String   @map("equipment_id")
+  type            String   @default("manual") // manual, automatic, ai
+  overallHealth   Int      @default(100) // 0-100
+  duration        Int?     // en secondes
+  
+  // Résultats du diagnostic
+  results         Json     // Détails des vérifications
+  issues          Json?    // Array of detected issues
+  recommendations Json?    // Array of recommendations
+  
+  // Statut
+  status          String   @default("completed") // running, completed, failed
+  
+  // Relations
+  equipment       DigitalTwin @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  technician      String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("diagnostic_records")
+}
+
+enum ActivityType {
+  TICKET_CREATED
+  TICKET_RESOLVED
+  TICKET_ASSIGNED
+  COMMENT_ADDED
+  ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  STREAK_BONUS
+  DAILY_BONUS
+  QUALITY_BONUS
+  SPEED_BONUS
+  TEAM_BONUS
+}
+
+// Modèles AR/VR pour le support immersif
+model ARVRSession {
+  id              String   @id @default(cuid())
+  sessionId       String   @unique
+  type            String   @default("ar") // ar, vr, desktop
+  status          String   @default("active") // active, ended, paused
+  agentId         String?
+  clientId         String?
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  lastActivity    DateTime @default(now())
+  metadata        Json?    // Infos supplémentaires (VR mode, device capabilities, etc.)
+  
+  // Relations
+  annotations     ARAnnotation[]
+  motionData      VRMotionData[]
+  trainingSessions VRTrainingSession[]
+  teleportRequests ExpertTeleportation[]
+  participants    ARVRParticipant[]
+  
+  @@map("arvr_sessions")
+}
+
+model ARAnnotation {
+  id              String   @id @default(cuid())
+  sessionId       String
+  userId          String
+  type            String   @default("text") // text, arrow, circle, highlight
+  content         String
+  position        Json     // {x, y, z} coordinates
+  metadata        Json?    // style, color, size, etc.
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  session         ARVRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("ar_annotations")
+}
+
+model VRMotionData {
+  id              String   @id @default(cuid())
+  sessionId       String
+  userId          String
+  headsetPosition Json     // {x, y, z}
+  headsetRotation Json     // {x, y, z, w} quaternion
+  controllerPositions Json? // Array of controller positions
+  gestureData     Json?    // Detected gestures
+  movementSpeed   Float?   // m/s
+  interactionData Json?    // Button presses, triggers, etc.
+  timestamp       DateTime @default(now())
+  metadata        Json?    // frameRate, trackingQuality, batteryLevel, etc.
+  
+  // Relations
+  session         ARVRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("vr_motion_data")
+}
+
+model VRTraining {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        String   @default("general") // hardware, software, safety, etc.
+  difficulty      String   @default("beginner") // beginner, intermediate, advanced
+  duration        Int      // en minutes
+  steps           Json     // Array of training steps
+  isPublished     Boolean  @default(false)
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  sessions        VRTrainingSession[]
+  
+  @@map("vr_trainings")
+}
+
+model VRTrainingSession {
+  id              String   @id @default(cuid())
+  trainingId      String
+  userId          String
+  sessionId       String?  // Lien vers une session AR/VR si applicable
+  status          String   @default("not_started") // not_started, in_progress, completed, failed
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  currentStep     Int      @default(0)
+  progress        Float    @default(0) // 0-100
+  
+  // Relations
+  training        VRTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  progressSteps   VRTrainingProgress[]
+  session         ARVRSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  @@map("vr_training_sessions")
+}
+
+model VRTrainingProgress {
+  id              String   @id @default(cuid())
+  trainingSessionId String
+  stepId          String
+  stepName        String
+  status          String   @default("not_started") // not_started, in_progress, completed, failed
+  progress        Float    @default(0) // 0-100
+  timeSpent       Int      @default(0) // en secondes
+  attempts        Int      @default(0)
+  completedAt     DateTime?
+  
+  // Relations
+  trainingSession VRTrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  
+  @@unique([trainingSessionId, stepId])
+  @@map("vr_training_progress")
+}
+
+model ExpertTeleportation {
+  id              String   @id @default(cuid())
+  expertId        String
+  clientId        String
+  sessionType     String   @default("desktop") // vr, desktop, ar
+  status          String   @default("pending") // pending, accepted, rejected, expired
+  createdAt       DateTime @default(now())
+  respondedAt     DateTime?
+  expiresAt       DateTime @default(now())
+  metadata        Json?    // device info, location, etc.
+  
+  // Relations
+  expert          User @relation("ExpertTeleportationExpert", fields: [expertId], references: [id], onDelete: Cascade)
+  client          User @relation("ExpertTeleportationClient", fields: [clientId], references: [id], onDelete: Cascade)
+  sessions        ExpertTeleportationSession[]
+  arvrSession     ARVRSession? @relation(fields: [id], references: [id], onDelete: Cascade)
+  
+  @@map("expert_teleportations")
+}
+
+model ExpertTeleportationSession {
+  id              String   @id @default(cuid())
+  requestId       String
+  expertId        String
+  clientId        String
+  status          String   @default("active") // active, ended, failed
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  sessionType     String   @default("desktop") // vr, desktop, ar
+  metadata        Json?    // connectionQuality, latency, bandwidth, etc.
+  
+  // Relations
+  request         ExpertTeleportation @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  @@map("expert_teleportation_sessions")
+}
+
+model ARVRParticipant {
+  id              String   @id @default(cuid())
+  sessionId       String
+  userId          String
+  role            String   @default("participant") // host, participant, observer
+  joinedAt        DateTime @default(now())
+  leftAt          DateTime?
+  capabilities    Json?    // device capabilities, permissions, etc.
+  metadata        Json?    // client info, connection details, etc.
+  
+  // Relations
+  session         ARVRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("arvr_participants")
+}
+
+// ============= MARKETPLACE MODELS =============
+
+// Expert profile in the marketplace
+model Expert {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bio             String?
+  avatar          String?
+  location        String?
+  website         String?
+  linkedin        String?
+  github          String?
+  languages       String?  // JSON array of languages
+  education       String?  // JSON array of education
+  certifications  String?  // JSON array of certifications
+  portfolio       String?  // JSON array of portfolio items
+  category        ExpertCategory @default(SOFTWARE)
+  subcategories   String?  // JSON array of subcategories
+  yearsExperience Int      @default(0)
+  hourlyRate      Float?   // Tarif horaire
+  minimumGigPrice Float    @default(50)
+  maximumGigPrice Float    @default(500)
+  availability    String   @default("available") // available, busy, unavailable
+  responseTime    Int      @default(24) // heures
+  isVerified      Boolean  @default(false)
+  verificationDoc String?  // Document de vérification
+  rating          Float    @default(0)
+  totalReviews    Int      @default(0)
+  totalGigs       Int      @default(0)
+  completedGigs   Int      @default(0)
+  successRate     Float    @default(1.0)
+  earnings        Float    @default(0)
+  joinedAt        DateTime @default(now())
+  lastActiveAt    DateTime @default(now())
+  
+  // Relations
+  user            User     @relation("ExpertProfile", fields: [userId], references: [id], onDelete: Cascade)
+  gigs            Gig[]
+  applications    GigApplication[]
+  reviews         Review[]  @relation("ExpertReviews")
+  expertise       Expertise[]
+  skills          ExpertSkill[]
+  availabilitySlots ExpertAvailabilitySlot[]
+  
+  @@map("experts")
+}
+
+// Expert skills and competencies
+model ExpertSkill {
+  id              String   @id @default(cuid())
+  expertId        String
+  skill           String
+  level           SkillLevel @default(BEGINNER)
+  yearsExperience Int      @default(0)
+  verified        Boolean  @default(false)
+  
+  // Relations
+  expert          Expert   @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  
+  @@unique([expertId, skill])
+  @@map("expert_skills")
+}
+
+// Expert detailed expertise areas
+model Expertise {
+  id              String   @id @default(cuid())
+  expertId        String
+  domain          String
+  specialization  String?
+  tools           String?  // JSON array of tools
+  methodologies   String?  // JSON array of methodologies
+  certifications  String?  // JSON array of certifications
+  projects        String?  // JSON array of relevant projects
+  
+  // Relations
+  expert          Expert   @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  
+  @@map("expert_expertise")
+}
+
+// Expert availability slots
+model ExpertAvailabilitySlot {
+  id              String   @id @default(cuid())
+  expertId        String
+  startTime       DateTime
+  endTime         DateTime
+  status          String   @default("available") // available, booked, unavailable
+  gigId           String?
+  recurring       Boolean  @default(false)
+  recurringPattern String? // daily, weekly, monthly
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  expert          Expert   @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  gig             Gig?     @relation(fields: [gigId], references: [id], onDelete: SetNull)
+  
+  @@map("expert_availability_slots")
+}
+
+// Gig/Task in the marketplace
+model Gig {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        GigCategory @default(SOFTWARE)
+  subcategories   String?  // JSON array of subcategories
+  complexity      GigComplexity @default(SIMPLE)
+  price           Float
+  estimatedDuration Int     // en minutes
+  urgency         String   @default("normal") // low, normal, high, urgent
+  location        String?  // Pour les missions en présentiel
+  remote          Boolean  @default(true)
+  tags            String?  // JSON array of tags
+  requirements    String?  // JSON array of requirements
+  deliverables    String?  // JSON array of deliverables
+  status          GigStatus @default(OPEN)
+  clientId        String
+  assignedExpertId String?
+  applicationDeadline DateTime?
+  expiresAt       DateTime
+  completedAt     DateTime?
+  priority        Int      @default(0)
+  viewCount       Int      @default(0)
+  applicationCount Int     @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  client          User     @relation("ClientGigs", fields: [clientId], references: [id], onDelete: Cascade)
+  assignedExpert  User?    @relation("ExpertGigs", fields: [assignedExpertId], references: [id], onDelete: SetNull)
+  expert          Expert?  @relation(fields: [assignedExpertId], references: [id], onDelete: SetNull)
+  applications    GigApplication[]
+  reviews         Review[]
+  milestones      GigMilestone[]
+  files           GigFile[]
+  availabilitySlots ExpertAvailabilitySlot[]
+  
+  @@map("gigs")
+}
+
+// Gig applications from experts
+model GigApplication {
+  id              String   @id @default(cuid())
+  gigId           String
+  expertId        String
+  coverLetter     String
+  proposedPrice   Float?
+  proposedDuration Int?    // en minutes
+  availability    String?
+  questions       String?  // JSON array of answers to client questions
+  portfolioLinks  String?  // JSON array of portfolio links
+  status          ApplicationStatus @default(PENDING)
+  appliedAt       DateTime @default(now())
+  respondedAt     DateTime?
+  responseMessage String?
+  
+  // Relations
+  gig             Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  expert          Expert   @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  
+  @@unique([gigId, expertId])
+  @@map("gig_applications")
+}
+
+// Gig milestones for complex projects
+model GigMilestone {
+  id              String   @id @default(cuid())
+  gigId           String
+  title           String
+  description     String?
+  deliverables    String?  // JSON array
+  dueDate         DateTime?
+  status          MilestoneStatus @default(PENDING)
+  completedAt     DateTime?
+  price           Float?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  gig             Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  
+  @@map("gig_milestones")
+}
+
+// Files attached to gigs
+model GigFile {
+  id              String   @id @default(cuid())
+  gigId           String
+  name            String
+  type            String
+  size            Int
+  path            String
+  uploadedBy      String   // userId
+  uploadedAt      DateTime @default(now())
+  
+  // Relations
+  gig             Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  
+  @@map("gig_files")
+}
+
+// Reviews and ratings
+model Review {
+  id              String   @id @default(cuid())
+  gigId           String
+  expertId        String
+  clientId        String
+  rating          Int      // 1-5
+  title           String?
+  content         String
+  communication   Int      // 1-5
+  quality         Int      // 1-5
+  timeliness      Int      // 1-5
+  professionalism Int      // 1-5
+  value           Int      // 1-5
+  wouldHireAgain  Boolean
+  isPublic        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  response        String?  // Response from expert
+  respondedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  gig             Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  expert          Expert   @relation("ExpertReviews", fields: [expertId], references: [id], onDelete: Cascade)
+  client          User     @relation("ClientReviews", fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@unique([gigId, clientId])
+  @@map("reviews")
+}
+
+// Marketplace statistics cache
+model MarketplaceStats {
+  id              String   @id @default(cuid())
+  totalExperts    Int      @default(0)
+  activeExperts   Int      @default(0)
+  totalGigs       Int      @default(0)
+  activeGigs      Int      @default(0)
+  completedGigs   Int      @default(0)
+  totalReviews    Int      @default(0)
+  averageRating   Float    @default(0)
+  averageGigPrice Float    @default(0)
+  totalRevenue    Float    @default(0)
+  monthlyRevenue  Float    @default(0)
+  topCategories   String?  // JSON array
+  lastUpdated     DateTime @default(now())
+  
+  @@map("marketplace_stats")
+}
+
+// Enums for Marketplace
+enum ExpertCategory {
+  SOFTWARE
+  HARDWARE
+  NETWORK
+  SECURITY
+  CLOUD
+  MOBILE
+  DATABASE
+  DEVOPS
+  AI_ML
+  OTHER
+}
+
+enum GigCategory {
+  SOFTWARE
+  HARDWARE
+  NETWORK
+  SECURITY
+  CLOUD
+  MOBILE
+  DATABASE
+  DEVOPS
+  AI_ML
+  OTHER
+}
+
+enum GigComplexity {
+  SIMPLE
+  INTERMEDIATE
+  COMPLEX
+}
+
+enum GigStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}

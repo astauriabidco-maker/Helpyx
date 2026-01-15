@@ -1,0 +1,190 @@
+/* Thème personnalisé TechSupport */
+:root {
+  /* Couleurs principales personnalisées */
+  --brand-primary: 59 130 246;      /* blue-600 */
+  --brand-primary-foreground: 255 255 255;
+  --brand-secondary: 16 185 129;    /* emerald-500 */
+  --brand-secondary-foreground: 255 255 255;
+  --brand-accent: 139 92 246;       /* violet-500 */
+  --brand-accent-foreground: 255 255 255;
+  
+  /* Couleurs de statut */
+  --status-open: 239 68 68;         /* red-500 */
+  --status-progress: 59 130 246;   /* blue-500 */
+  --status-closed: 34 197 94;      /* green-500 */
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, rgb(var(--brand-primary)), rgb(var(--brand-accent)));
+  --gradient-secondary: linear-gradient(135deg, rgb(var(--brand-secondary)), rgb(var(--brand-primary)));
+  
+  /* Animations */
+  --animation-duration: 0.3s;
+  --animation-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mode sombre */
+.dark {
+  --brand-primary: 96 165 250;      /* blue-400 */
+  --brand-secondary: 52 211 153;    /* emerald-400 */
+  --brand-accent: 167 139 250;      /* violet-400 */
+}
+
+/* Animations personnalisées */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Classes utilitaires */
+.animate-slide-up {
+  animation: slideInUp var(--animation-duration) var(--animation-timing);
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--animation-duration) var(--animation-timing);
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Styles de branding */
+.brand-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-button {
+  background: var(--gradient-primary);
+  transition: all var(--animation-duration) var(--animation-timing);
+}
+
+.brand-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgb(var(--brand-primary) / 0.3);
+}
+
+/* Cards avec branding */
+.brand-card {
+  border-left: 4px solid rgb(var(--brand-primary));
+  transition: all var(--animation-duration) var(--animation-timing);
+}
+
+.brand-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+/* Badges de statut */
+.status-open {
+  background-color: rgb(var(--status-open) / 0.1);
+  color: rgb(var(--status-open));
+  border: 1px solid rgb(var(--status-open) / 0.2);
+}
+
+.status-progress {
+  background-color: rgb(var(--status-progress) / 0.1);
+  color: rgb(var(--status-progress));
+  border: 1px solid rgb(var(--status-progress) / 0.2);
+}
+
+.status-closed {
+  background-color: rgb(var(--status-closed) / 0.1);
+  color: rgb(var(--status-closed));
+  border: 1px solid rgb(var(--status-closed) / 0.2);
+}
+
+/* Scrollbar personnalisée */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(var(--muted) / 0.1);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(var(--brand-primary) / 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--brand-primary) / 0.7);
+}
+
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--muted) / 0.1) 25%,
+    rgb(var(--muted) / 0.2) 50%,
+    rgb(var(--muted) / 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Focus states améliorés */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  --tw-ring-color: rgb(var(--brand-primary) / 0.5);
+}
+
+/* Transitions de page */
+.page-transition {
+  transition: all var(--animation-duration) var(--animation-timing);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform var(--animation-duration) var(--animation-timing);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Responsive text */
+.responsive-text {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+}
+
+.responsive-title {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+}
