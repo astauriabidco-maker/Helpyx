@@ -9,7 +9,7 @@ function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
     _stripe = new Stripe(key, {
-      apiVersion: '2024-06-20',
+      apiVersion: '2024-06-20' as any,
     });
   }
   return _stripe;
@@ -373,7 +373,7 @@ export class StripeService {
             price: priceId,
           },
         ],
-        proration_behavior,
+        proration_behavior: prorationBehavior,
       });
 
       return {

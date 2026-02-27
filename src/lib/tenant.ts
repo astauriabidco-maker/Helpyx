@@ -143,7 +143,7 @@ export async function requireTenant(options?: {
     if (result.ok) {
         return [result, null];
     }
-    return [null, result.response];
+    return [null, (result as TenantContextError).response];
 }
 
 /**

@@ -323,11 +323,11 @@ export const smsService = new SMSService();
 
 // Fonctions pour les workflows
 export const sendSMSNotification = async (userId: string, type: string, data: any) => {
-  const { sendSMS } = await import('./sms-service');
+  const { smsService } = await import('./sms-service');
 
   switch (type) {
     case 'ticket_assigned':
-      await sendSMS.notifyTicketAssigned(
+      await smsService.notifyTicketAssigned(
         data.userPhone,
         data.ticketId,
         data.ticketNumber
@@ -335,7 +335,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
       break;
 
     case 'ticket_updated':
-      await sendSMS.notifyTicketUpdated(
+      await smsService.notifyTicketUpdated(
         data.userPhone,
         data.ticketId,
         data.ticketNumber,
@@ -344,7 +344,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
       break;
 
     case 'ticket_closed':
-      await sendSMS.notifyTicketClosed(
+      await smsService.notifyTicketClosed(
         data.userPhone,
         data.ticketId,
         data.ticketNumber
@@ -352,7 +352,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
       break;
 
     case 'urgent':
-      await sendSMS.notifyUrgentTicket(
+      await smsService.notifyUrgentTicket(
         data.userPhone,
         data.ticketId,
         data.ticketNumber,

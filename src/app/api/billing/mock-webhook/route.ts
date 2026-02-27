@@ -25,11 +25,13 @@ export async function POST(request: NextRequest) {
             data: {
                 companyId: companyId,
                 planId: planId,
-                status: 'active',
+                statut: 'active',
                 stripeSubscriptionId: `sub_mock_${sessionId}`,
-                currentPeriodStart,
-                currentPeriodEnd,
-                cancelAtPeriodEnd: false
+                dateDebut: currentPeriodStart,
+                dateFin: currentPeriodEnd,
+                prixMensuel: plan.prixMensuel,
+                limiteUtilisateurs: plan.limiteUtilisateurs,
+                autoRenew: true
             }
         });
 
