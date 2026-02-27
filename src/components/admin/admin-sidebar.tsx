@@ -36,7 +36,8 @@ import {
     Trophy,
     Monitor,
     Store,
-    Sparkles
+    Sparkles,
+    Plug
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -71,6 +72,7 @@ const navSections = [
     {
         label: 'Système',
         items: [
+            { title: 'Intégrations', href: '/admin/integrations', icon: Plug },
             { title: 'Notifications', href: '/notifications', icon: Bell },
             { title: 'Paramètres', href: '/admin/settings', icon: Settings },
         ]
