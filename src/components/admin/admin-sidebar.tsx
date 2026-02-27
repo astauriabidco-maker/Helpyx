@@ -48,6 +48,7 @@ const navSections = [
             { title: 'Tableau de bord', href: '/admin', icon: LayoutDashboard },
             { title: 'Tickets', href: '/admin/tickets', icon: Ticket, badge: '' },
             { title: 'Utilisateurs', href: '/admin/users', icon: Users },
+            { title: 'Reporting IA', href: '/admin/reporting', icon: BarChart3 },
         ]
     },
     {
