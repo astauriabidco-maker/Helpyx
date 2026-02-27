@@ -42,15 +42,12 @@ export async function GET(request: NextRequest) {
           status: { in: ['OUVERT', 'EN_DIAGNOSTIC', 'EN_REPARATION'] }
         }
       }),
-      // Calcul du temps de résolution moyen
-      db.ticket.aggregate({
+      // Tickets résolus avec temps de résolution
+      db.ticket.count({
         where: {
           status: { in: ['REPARÉ', 'FERMÉ'] },
           actualResolutionTime: { not: null },
           createdAt: { gte: startDate }
-        },
-        _avg: {
-          actualResolutionTime: true
         }
       })
     ]);
@@ -184,9 +181,7 @@ export async function GET(request: NextRequest) {
         ticketsEnCours,
         ticketsCritiques,
         tauxResolution: Math.round(tauxResolution * 100) / 100,
-        tempsResolutionMoyen: tempsResolutionMoyen._avg.actualResolutionTime 
-          ? Math.round(tempsResolutionMoyen._avg.actualResolutionTime / (1000 * 60 * 60 * 24)) // en jours
-          : null
+        tempsResolutionMoyen: null // Calculé côté client si nécessaire
       },
       distribution: {
         byStatus: ticketsByStatus,

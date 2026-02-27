@@ -11,9 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Server, 
-  Network, 
+import {
+  Server,
+  Network,
   Activity,
   BarChart3,
   LineChart,
@@ -53,8 +53,7 @@ import {
   Lightbulb,
   Search,
   Link,
-  Link2Off,
-  Sync
+  Link2Off
 } from 'lucide-react';
 
 interface MonitoringSystem {
@@ -203,7 +202,7 @@ export default function MonitoringDashboard() {
   const getStatusBadge = (isActive: boolean, lastSync: Date) => {
     const now = new Date();
     const diffMinutes = (now.getTime() - lastSync.getTime()) / (1000 * 60);
-    
+
     if (!isActive) {
       return <Badge variant="secondary">Inactif</Badge>;
     } else if (diffMinutes > 15) {
@@ -353,7 +352,7 @@ export default function MonitoringDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -365,7 +364,7 @@ export default function MonitoringDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -379,7 +378,7 @@ export default function MonitoringDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -389,7 +388,7 @@ export default function MonitoringDashboard() {
                     {syncStats.filter(s => s.status === 'active').length}
                   </p>
                 </div>
-                <Sync className="w-8 h-8 text-orange-500 opacity-50" />
+                <RefreshCw className="w-8 h-8 text-orange-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -421,10 +420,9 @@ export default function MonitoringDashboard() {
                     {syncStats.map((stat, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            stat.status === 'active' ? 'bg-green-500' :
-                            stat.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
-                          }`}></div>
+                          <div className={`w-2 h-2 rounded-full ${stat.status === 'active' ? 'bg-green-500' :
+                              stat.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                            }`}></div>
                           <div>
                             <p className="text-sm font-medium">{stat.name}</p>
                             <p className="text-xs text-muted-foreground">
@@ -457,7 +455,7 @@ export default function MonitoringDashboard() {
                     {['server', 'network', 'application', 'security'].map((type) => {
                       const count = systems.filter(s => s.type === type).length;
                       const percentage = systems.length > 0 ? (count / systems.length) * 100 : 0;
-                      
+
                       return (
                         <div key={type} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -497,7 +495,7 @@ export default function MonitoringDashboard() {
                     </div>
                     <span className="text-xs text-muted-foreground">Il y a 5 min</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -510,7 +508,7 @@ export default function MonitoringDashboard() {
                     </div>
                     <span className="text-xs text-muted-foreground">Il y a 15 min</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
@@ -566,7 +564,7 @@ export default function MonitoringDashboard() {
                         </Button>
                       </div>
                     </div>
-                    
+
                     <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Dernière sync:</span>
@@ -584,7 +582,7 @@ export default function MonitoringDashboard() {
                   </CardContent>
                 </Card>
               ))}
-              
+
               {systems.length === 0 && (
                 <Card>
                   <CardContent className="p-12 text-center">
@@ -608,7 +606,7 @@ export default function MonitoringDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Sync className="w-5 h-5" />
+                  <RefreshCw className="w-5 h-5" />
                   Statistiques de synchronisation
                 </CardTitle>
                 <CardDescription>
@@ -621,10 +619,9 @@ export default function MonitoringDashboard() {
                     <div key={index} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            stat.status === 'active' ? 'bg-green-500' :
-                            stat.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
-                          }`}></div>
+                          <div className={`w-3 h-3 rounded-full ${stat.status === 'active' ? 'bg-green-500' :
+                              stat.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                            }`}></div>
                           <h4 className="font-medium">{stat.name}</h4>
                           <Badge variant={stat.status === 'active' ? 'default' : 'secondary'}>
                             {stat.status}
@@ -634,7 +631,7 @@ export default function MonitoringDashboard() {
                           {new Date(stat.lastSync).toLocaleString('fr-FR')}
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <span className="text-sm text-muted-foreground">Points de données</span>

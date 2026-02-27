@@ -1,59 +1,66 @@
 import nodemailer from 'nodemailer';
 
 interface EmailOptions {
-  to: string;
-  subject: string;
-  html?: string;
-  text?: string;
-  attachments?: Array<{
-    filename: string;
-    path?: string;
-    content?: Buffer;
-  }>;
+    to: string;
+    subject: string;
+    html?: string;
+    text?: string;
+    attachments?: Array<{
+        filename: string;
+        path?: string;
+        content?: Buffer;
+    }>;
 }
 
 export class EmailService {
-  private static transporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+    private static _transporter: nodemailer.Transporter | null = null;
+
+    private static getTransporter(): nodemailer.Transporter {
+        if (!this._transporter) {
+            this._transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: parseInt(process.env.SMTP_PORT || '587'),
+                secure: false,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
+        }
+        return this._transporter;
     }
-  });
 
-  static async sendEmail(options: EmailOptions): Promise<boolean> {
-    try {
-      const mailOptions = {
-        from: process.env.SMTP_FROM || '"TechSupport SAV" <noreply@techsupport-sav.fr>',
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        attachments: options.attachments
-      };
+    static async sendEmail(options: EmailOptions): Promise<boolean> {
+        try {
+            const mailOptions = {
+                from: process.env.SMTP_FROM || '"TechSupport SAV" <noreply@techsupport-sav.fr>',
+                to: options.to,
+                subject: options.subject,
+                html: options.html,
+                text: options.text,
+                attachments: options.attachments
+            };
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
-      return true;
-    } catch (error) {
-      console.error('Error sending email:', error);
-      return false;
+            const result = await this.getTransporter().sendMail(mailOptions);
+            console.log('Email sent successfully:', result.messageId);
+            return true;
+        } catch (error) {
+            console.error('Error sending email:', error);
+            return false;
+        }
     }
-  }
 
-  static async sendInvoiceEmail(
-    to: string,
-    companyName: string,
-    invoiceNumber: string,
-    invoicePath: string,
-    amount: number,
-    dueDate: Date
-  ): Promise<boolean> {
-    const subject = `Facture ${invoiceNumber} - TechSupport SAV`;
-    
-    const html = `
+    static async sendInvoiceEmail(
+        to: string,
+        companyName: string,
+        invoiceNumber: string,
+        invoicePath: string,
+        amount: number,
+        dueDate: Date
+    ): Promise<boolean> {
+        const subject = `Facture ${invoiceNumber} - TechSupport SAV`;
+
+        const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -179,9 +186,9 @@ export class EmailService {
                     <div class="detail-item">
                         <div class="detail-label">Montant total</div>
                         <div class="detail-value amount">${new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: 'EUR'
-                        }).format(amount)}</div>
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount)}</div>
                     </div>
                 </div>
                 <div>
@@ -229,16 +236,16 @@ export class EmailService {
 </body>
 </html>`;
 
-    const text = `
+        const text = `
 Bonjour ${companyName},
 
 Votre facture ${invoiceNumber} est maintenant disponible.
 
 Numéro de facture: ${invoiceNumber}
 Montant total: ${new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR'
-}).format(amount)}
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount)}
 Date d'échéance: ${dueDate.toLocaleDateString('fr-FR')}
 
 La facture complète est jointe à cet email au format PDF.
@@ -249,30 +256,30 @@ Cordialement,
 L'équipe de TechSupport SAV
 `;
 
-    return this.sendEmail({
-      to,
-      subject,
-      html,
-      text,
-      attachments: [
-        {
-          filename: `${invoiceNumber}.pdf`,
-          path: invoicePath.startsWith('/') ? process.cwd() + '/public' + invoicePath : invoicePath
-        }
-      ]
-    });
-  }
+        return this.sendEmail({
+            to,
+            subject,
+            html,
+            text,
+            attachments: [
+                {
+                    filename: `${invoiceNumber}.pdf`,
+                    path: invoicePath.startsWith('/') ? process.cwd() + '/public' + invoicePath : invoicePath
+                }
+            ]
+        });
+    }
 
-  static async sendSubscriptionReminderEmail(
-    to: string,
-    companyName: string,
-    planName: string,
-    nextBillingDate: Date,
-    amount: number
-  ): Promise<boolean> {
-    const subject = 'Rappel: Votre abonnement TechSupport SAV';
-    
-    const html = `
+    static async sendSubscriptionReminderEmail(
+        to: string,
+        companyName: string,
+        planName: string,
+        nextBillingDate: Date,
+        amount: number
+    ): Promise<boolean> {
+        const subject = 'Rappel: Votre abonnement TechSupport SAV';
+
+        const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -360,14 +367,14 @@ L'équipe de TechSupport SAV
         <div class="reminder-box">
             <h3>📅 Prochaine échéance</h3>
             <div class="date-highlight">${nextBillingDate.toLocaleDateString('fr-FR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })}</div>
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })}</div>
             <p>Montant à débiter: <span class="amount">${new Intl.NumberFormat('fr-FR', {
-              style: 'currency',
-              currency: 'EUR'
-            }).format(amount)}</span></p>
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount)}</span></p>
         </div>
 
         <p>Le paiement sera automatiquement débité de votre méthode de paiement enregistrée. 
@@ -393,22 +400,22 @@ L'équipe de TechSupport SAV
 </body>
 </html>`;
 
-    return this.sendEmail({
-      to,
-      subject,
-      html
-    });
-  }
+        return this.sendEmail({
+            to,
+            subject,
+            html
+        });
+    }
 
-  static async sendWelcomeEmail(
-    to: string,
-    companyName: string,
-    planName: string,
-    trialEndDate: Date
-  ): Promise<boolean> {
-    const subject = 'Bienvenue chez TechSupport SAV!';
-    
-    const html = `
+    static async sendWelcomeEmail(
+        to: string,
+        companyName: string,
+        planName: string,
+        trialEndDate: Date
+    ): Promise<boolean> {
+        const subject = 'Bienvenue chez TechSupport SAV!';
+
+        const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -531,10 +538,10 @@ L'équipe de TechSupport SAV
             <h4>📅 Période d'essai gratuite</h4>
             <p>Profitez de <strong>14 jours d'essai gratuit</strong> pour découvrir toutes nos fonctionnalités!</p>
             <p>Votre essai se termine le: <span class="date-highlight">${trialEndDate.toLocaleDateString('fr-FR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })}</span></p>
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })}</span></p>
             <p>Aucun paiement ne sera effectué avant la fin de votre période d'essai.</p>
         </div>
 
@@ -569,10 +576,10 @@ L'équipe de TechSupport SAV
 </body>
 </html>`;
 
-    return this.sendEmail({
-      to,
-      subject,
-      html
-    });
-  }
+        return this.sendEmail({
+            to,
+            subject,
+            html
+        });
+    }
 }

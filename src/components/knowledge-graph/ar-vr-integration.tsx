@@ -9,9 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Eye, 
-  Cube,
+import {
+  Eye,
+  Box,
   Move3d,
   Zap,
   Settings,
@@ -26,7 +26,6 @@ import {
   RefreshCw,
   MousePointer,
   Hand,
-  Box,
   GitBranch,
   Users,
   Monitor,
@@ -92,14 +91,14 @@ interface VRMetrics {
 
 export function ARVRIntegration() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(null);
   const [isVRMode, setIsVRMode] = useState(false);
   const [isARMode, setIsARMode] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedNode, setSelectedNode] = useState<VRNode | null>(null);
   const [interactionMode, setInteractionMode] = useState<'select' | 'move' | 'rotate' | 'scale'>('select');
   const [activeTab, setActiveTab] = useState('scene');
-  
+
   const [scene, setScene] = useState<VRScene>({
     nodes: [],
     camera: {
@@ -148,7 +147,7 @@ export function ARVRIntegration() {
   useEffect(() => {
     initializeScene();
     loadVRData();
-    
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -208,7 +207,7 @@ export function ARVRIntegration() {
     const nodes: VRNode[] = [];
     const nodeTypes = ['entity', 'relation', 'insight', 'cluster'];
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-    
+
     for (let i = 0; i < 20; i++) {
       nodes.push({
         id: `node-${i}`,
@@ -257,19 +256,19 @@ export function ARVRIntegration() {
   const startRenderLoop = () => {
     const render = () => {
       if (!isPlaying) return;
-      
+
       // Update scene
       updateScene();
-      
+
       // Render scene
       renderScene();
-      
+
       // Update metrics
       updateMetrics();
-      
+
       animationRef.current = requestAnimationFrame(render);
     };
-    
+
     render();
   };
 
@@ -304,7 +303,7 @@ export function ARVRIntegration() {
 
   const renderScene = () => {
     if (!canvasRef.current) return;
-    
+
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
@@ -320,7 +319,7 @@ export function ARVRIntegration() {
     // Draw connections
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 1;
-    
+
     scene.nodes.forEach(node => {
       node.connections.forEach(targetId => {
         const target = scene.nodes.find(n => n.id === targetId);
@@ -415,11 +414,11 @@ export function ARVRIntegration() {
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     // Simple hit detection
     const centerX = canvasRef.current.width / 2;
     const centerY = canvasRef.current.height / 2;
@@ -461,7 +460,7 @@ export function ARVRIntegration() {
 
   const getNodeTypeIcon = (type: string) => {
     switch (type) {
-      case 'entity': return <Cube className="w-4 h-4" />;
+      case 'entity': return <Box className="w-4 h-4" />;
       case 'relation': return <GitBranch className="w-4 h-4" />;
       case 'insight': return <Eye className="w-4 h-4" />;
       case 'cluster': return <Box className="w-4 h-4" />;
@@ -572,7 +571,7 @@ export function ARVRIntegration() {
                   className="w-full border rounded-lg cursor-crosshair bg-black"
                   onClick={handleCanvasClick}
                 />
-                
+
                 {/* Controls Overlay */}
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Button
@@ -726,7 +725,7 @@ export function ARVRIntegration() {
                   {getNodeTypeIcon(selectedNode.type)}
                   <span className="font-medium">{selectedNode.label}</span>
                 </div>
-                
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Type:</span>

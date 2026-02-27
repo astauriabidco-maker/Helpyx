@@ -292,7 +292,7 @@ export default function LandingPage() {
                 <Button variant="outline" size="sm" onClick={() => window.location.href = '/smart-inventory'}>
                   📡 Inventaire
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => window.location.href = '/auth/login'}>
+                <Button variant="outline" size="sm" onClick={() => window.location.href = '/auth/signin'}>
                   Connexion
                 </Button>
                 <Button onClick={() => window.location.href = '/auth/register'}>
@@ -325,7 +325,7 @@ export default function LandingPage() {
                 <Button variant="outline" className="w-full" onClick={() => window.location.href = '/behavioral'}>
                   🧠 Démo IA
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => window.location.href = '/auth/login'}>
+                <Button variant="outline" className="w-full" onClick={() => window.location.href = '/auth/signin'}>
                   Connexion
                 </Button>
                 <Button className="w-full" onClick={() => window.location.href = '/auth/register'}>

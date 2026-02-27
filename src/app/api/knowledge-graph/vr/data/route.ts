@@ -16,7 +16,7 @@ export async function GET() {
     const nodes = tickets.map((ticket, index) => {
       const angle = (index / tickets.length) * Math.PI * 2;
       const radius = 5 + Math.random() * 3;
-      
+
       return {
         id: `ticket-${ticket.id}`,
         type: 'entity',
@@ -35,15 +35,15 @@ export async function GET() {
           y: 1,
           z: 1
         },
-        color: getTicketColor(ticket.priority),
-        label: ticket.title.substring(0, 20) + '...',
+        color: getTicketColor(ticket.priorite),
+        label: (ticket.titre || ticket.description).substring(0, 20) + '...',
         data: {
           ticketId: ticket.id,
-          priority: ticket.priority,
+          priority: ticket.priorite,
           status: ticket.status,
           createdAt: ticket.createdAt
         },
-        connections: [],
+        connections: [] as string[],
         confidence: 0.8 + Math.random() * 0.2,
         lastUpdate: new Date()
       };
@@ -66,7 +66,7 @@ export async function GET() {
 
     const allNodes = [...nodes, ...relationNodes, ...insightNodes];
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       nodes: allNodes,
       metadata: {
         totalNodes: allNodes.length,
@@ -78,11 +78,11 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching VR data:', error);
-    
+
     // Données de démonstration en cas d'erreur
     const demoNodes = generateDemoNodes();
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       nodes: demoNodes,
       metadata: {
         totalNodes: demoNodes.length,
@@ -108,7 +108,7 @@ function getTicketColor(priority: string): string {
 function generateRelationNodes(): any[] {
   const relations = ['résout', 'est lié à', 'cause', 'symptôme de'];
   const colors = ['#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
-  
+
   return relations.map((relation, index) => ({
     id: `relation-${index}`,
     type: 'relation',
@@ -145,7 +145,7 @@ function generateInsightNodes(): any[] {
     'Anomalie de performance',
     'Corrélation inattendue'
   ];
-  
+
   return insights.map((insight, index) => ({
     id: `insight-${index}`,
     type: 'insight',
@@ -177,14 +177,14 @@ function generateInsightNodes(): any[] {
 }
 
 function generateDemoNodes(): any[] {
-  const nodes = [];
+  const nodes: any[] = [];
   const nodeTypes = ['entity', 'relation', 'insight', 'cluster'];
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-  
+
   for (let i = 0; i < 30; i++) {
     const angle = (i / 30) * Math.PI * 2;
     const radius = 3 + Math.random() * 5;
-    
+
     nodes.push({
       id: `demo-node-${i}`,
       type: nodeTypes[Math.floor(Math.random() * nodeTypes.length)],

@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier si la session existe
-    const existingSession = await db.aRVRSessions.findUnique({
+    const existingSession = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
     if (!existingSession) {
       // Créer une nouvelle session
-      const session = await db.aRVRSessions.create({
+      const session = await db.aRVRSession.create({
         data: {
           sessionId,
           type: 'ar',
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
           startTime: new Date(),
           metadata: {
             userAgent: request.headers.get('user-agent'),
-            ipAddress: request.ip || 'unknown'
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown'
           }
         }
       });
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Mettre à jour la session existante
-      const updatedSession = await db.aRVRSessions.update({
+      const updatedSession = await db.aRVRSession.update({
         where: { sessionId },
         data: {
           agentId: userType === 'agent' ? userId : existingSession.agentId,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId },
       include: {
         annotations: {

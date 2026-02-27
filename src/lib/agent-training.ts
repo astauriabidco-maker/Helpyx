@@ -123,7 +123,7 @@ export class AgentTrainingService {
 
       // Aplatir et filtrer les suggestions
       const allSuggestions = suggestions.flat();
-      
+
       // Prioriser et limiter les suggestions
       return this.prioritizeSuggestions(allSuggestions).slice(0, 5);
 
@@ -177,7 +177,7 @@ Réponds au format JSON avec un tableau d'objets.
       if (!response) return [];
 
       const suggestionsData = JSON.parse(response);
-      
+
       return (Array.isArray(suggestionsData) ? suggestionsData : []).map((suggestion, index) => ({
         id: `bp_${Date.now()}_${index}`,
         type: 'best_practice' as const,
@@ -186,8 +186,8 @@ Réponds au format JSON avec un tableau d'objets.
         message: suggestion.message || '',
         actionItems: Array.isArray(suggestion.actionItems) ? suggestion.actionItems : [],
         context: suggestion.context || 'Support technique',
-        timing: ['immediate', 'before_action', 'after_action'].includes(suggestion.timing) 
-          ? suggestion.timing 
+        timing: ['immediate', 'before_action', 'after_action'].includes(suggestion.timing)
+          ? suggestion.timing
           : 'immediate',
         category: suggestion.category || 'general',
         estimatedTime: suggestion.estimatedTime
@@ -239,7 +239,7 @@ Format JSON avec titre, message, actions recommandées et niveau d'urgence.
       if (!response) return [];
 
       const warningsData = JSON.parse(response);
-      
+
       return (Array.isArray(warningsData) ? warningsData : []).map((warning, index) => ({
         id: `warning_${Date.now()}_${index}`,
         type: 'warning' as const,
@@ -269,7 +269,7 @@ Niveau actuel des compétences :
 ${context.agentSkills.map(skill => `- ${skill.name}: ${skill.level}/10 ${skill.trainingNeeded ? '(formation requise)' : ''}`).join('\n')}
 
 Situation actuelle :
-- Action : ${contextAction}
+- Action : ${context.currentAction}
 - Type de problème : ${context.currentTicket.type_panne}
 - Complexité : ${this.assessComplexity(context.currentTicket)}
 
@@ -302,7 +302,7 @@ Format JSON avec titre, message, actions et durée estimée.
       if (!response) return [];
 
       const trainingData = JSON.parse(response);
-      
+
       return (Array.isArray(trainingData) ? trainingData : []).map((training, index) => ({
         id: `training_${Date.now()}_${index}`,
         type: 'training' as const,
@@ -328,9 +328,9 @@ Format JSON avec titre, message, actions et durée estimée.
 En tant que coach de performance, analyse cette situation et suggère des améliorations basées sur l'historique de l'agent :
 
 Performance récente :
-${context.performanceHistory.slice(-5).map(metric => 
-  `- ${metric.action}: ${metric.success ? 'Succès' : 'Échec'} (Qualité: ${metric.quality}/5, Temps: ${metric.timeSpent}min)`
-).join('\n')}
+${context.performanceHistory.slice(-5).map(metric =>
+      `- ${metric.action}: ${metric.success ? 'Succès' : 'Échec'} (Qualité: ${metric.quality}/5, Temps: ${metric.timeSpent}min)`
+    ).join('\n')}
 
 Situation actuelle :
 - Action : ${context.currentAction}
@@ -365,7 +365,7 @@ Format JSON avec titre, message et actions concrètes.
       if (!response) return [];
 
       const improvementData = JSON.parse(response);
-      
+
       return (Array.isArray(improvementData) ? improvementData : []).map((improvement, index) => ({
         id: `improvement_${Date.now()}_${index}`,
         type: 'improvement' as const,
@@ -396,10 +396,10 @@ Format JSON avec titre, message et actions concrètes.
 
       // Analyser les écarts avec l'IA
       const gaps = await this.identifySkillGaps(currentSkills, requiredSkills, zai);
-      
+
       // Générer des recommandations
       const recommendations = await this.generateTrainingRecommendations(gaps, zai);
-      
+
       // Créer la matrice de priorité
       const priorityMatrix = this.createPriorityMatrix(gaps);
 
@@ -420,7 +420,7 @@ Format JSON avec titre, message et actions concrètes.
 
   // Générer un module de formation personnalisé
   static async generatePersonalizedTraining(
-    agentId: string, 
+    agentId: string,
     skillGaps: SkillGap[]
   ): Promise<TrainingModule[]> {
     try {
@@ -443,7 +443,7 @@ Format JSON avec titre, message et actions concrètes.
 
   // Évaluer la performance après formation
   static async evaluateTrainingEffectiveness(
-    agentId: string, 
+    agentId: string,
     trainingModuleId: string,
     beforeMetrics: PerformanceMetric[],
     afterMetrics: PerformanceMetric[]
@@ -496,7 +496,7 @@ Réponds au format JSON avec ces trois éléments.
       }
 
       const evaluation = JSON.parse(response);
-      
+
       return {
         improvement: evaluation.improvement || 0,
         skillLevelIncrease: evaluation.skillLevelIncrease || 0,
@@ -516,15 +516,15 @@ Réponds au format JSON avec ces trois éléments.
   // Méthodes utilitaires privées
   private static prioritizeSuggestions(suggestions: RealTimeSuggestion[]): RealTimeSuggestion[] {
     const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-    
+
     return suggestions.sort((a, b) => {
       const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (priorityDiff !== 0) return priorityDiff;
-      
+
       // Prioriser les suggestions immédiates
       if (a.timing === 'immediate' && b.timing !== 'immediate') return -1;
       if (b.timing === 'immediate' && a.timing !== 'immediate') return 1;
-      
+
       return 0;
     });
   }
@@ -590,8 +590,8 @@ Réponds au format JSON avec ces trois éléments.
   }
 
   private static async identifySkillGaps(
-    currentSkills: AgentSkill[], 
-    requiredSkills: AgentSkill[], 
+    currentSkills: AgentSkill[],
+    requiredSkills: AgentSkill[],
     zai: ZAI
   ): Promise<SkillGap[]> {
     const gaps: SkillGap[] = [];
@@ -599,7 +599,7 @@ Réponds au format JSON avec ces trois éléments.
     for (const required of requiredSkills) {
       const current = currentSkills.find(s => s.name === required.name);
       const currentLevel = current?.level || 0;
-      
+
       if (currentLevel < required.level) {
         gaps.push({
           skill: required.name,
@@ -629,7 +629,7 @@ Réponds au format JSON avec ces trois éléments.
   }
 
   private static async generateTrainingRecommendations(
-    gaps: SkillGap[], 
+    gaps: SkillGap[],
     zai: ZAI
   ): Promise<TrainingRecommendation[]> {
     // Logique de génération de recommandations
@@ -697,7 +697,7 @@ Réponds au format JSON.
       }
 
       const moduleData = JSON.parse(response);
-      
+
       return {
         id: `module_${skillGap.skill.replace(/\s+/g, '_')}_${Date.now()}`,
         title: moduleData.title || `Formation ${skillGap.skill}`,

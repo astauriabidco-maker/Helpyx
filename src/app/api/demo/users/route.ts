@@ -32,7 +32,7 @@ export async function POST() {
       }
     ];
 
-    const createdUsers = [];
+    const createdUsers: any[] = [];
     
     for (const userData of demoUsers) {
       // Vérifier si l'utilisateur existe déjà

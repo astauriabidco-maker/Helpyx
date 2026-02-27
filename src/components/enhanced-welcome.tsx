@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
-  Settings, 
-  ArrowRight, 
-  Ticket, 
-  BarChart3, 
+import {
+  Users,
+  Settings,
+  ArrowRight,
+  Ticket,
+  BarChart3,
   MessageCircle,
   Zap,
   Shield,
@@ -26,9 +26,9 @@ interface EnhancedWelcomeProps {
   primaryColor?: string;
 }
 
-export function EnhancedWelcome({ 
-  companyName = "TechSupport", 
-  primaryColor = "#3b82f6" 
+export function EnhancedWelcome({
+  companyName = "Helpyx",
+  primaryColor = "#3b82f6"
 }: EnhancedWelcomeProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function EnhancedWelcome({
       icon: BarChart3,
       title: "Dashboard Analytics",
       description: "Statistiques en temps réel et vue d'ensemble des performances du support",
-      color: "text-green-600", 
+      color: "text-green-600",
       bgColor: "bg-green-50",
       stats: "Live"
     },
@@ -55,7 +55,7 @@ export function EnhancedWelcome({
       title: "Communication",
       description: "Notifications instantanées et suivi des conversations avec les clients",
       color: "text-purple-600",
-      bgColor: "bg-purple-50", 
+      bgColor: "bg-purple-50",
       stats: "Instant"
     }
   ];
@@ -115,7 +115,7 @@ export function EnhancedWelcome({
             <div className="space-y-4">
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900">
                 Bienvenue sur le Portail
-                <span 
+                <span
                   className="block text-transparent bg-clip-text"
                   style={{ backgroundImage: `linear-gradient(135deg, ${primaryColor}, #8b5cf6)` }}
                 >
@@ -123,7 +123,7 @@ export function EnhancedWelcome({
                 </span>
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Une solution complète pour gérer les tickets de support, 
+                Une solution complète pour gérer les tickets de support,
                 suivre les pannes et offrir un service client exceptionnel.
               </p>
             </div>
@@ -161,11 +161,10 @@ export function EnhancedWelcome({
 
           <div className="grid md:grid-cols-3 gap-8 mb-16">
             {features.map((feature, index) => (
-              <Card 
+              <Card
                 key={index}
-                className={`relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${
-                  isHovered === feature.title ? 'transform -translate-y-2' : ''
-                }`}
+                className={`relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${isHovered === feature.title ? 'transform -translate-y-2' : ''
+                  }`}
                 onMouseEnter={() => setIsHovered(feature.title)}
                 onMouseLeave={() => setIsHovered(null)}
               >
@@ -253,8 +252,8 @@ export function EnhancedWelcome({
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 onClick={() => router.push('/register')}
                 className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300"
                 style={{ backgroundColor: primaryColor }}
@@ -263,10 +262,10 @@ export function EnhancedWelcome({
                 Créer mon compte
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg" 
+
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => router.push('/auth/signin')}
                 className="text-lg px-8 py-6 border-2 hover:bg-gray-50"
               >

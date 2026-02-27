@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Expire dans 5 minutes
         metadata: {
           userAgent: request.headers.get('user-agent'),
-          ipAddress: request.ip || 'unknown'
+          ipAddress: request.headers.get('x-forwarded-for') || 'unknown'
         }
       }
     });
@@ -49,16 +49,10 @@ export async function POST(request: NextRequest) {
     await db.notification.create({
       data: {
         userId: expertId,
-        type: 'expert_teleport_request',
+        type: 'SYSTEM_ANNOUNCEMENT',
         title: 'Demande de téléportation',
         message: `${client.name} demande votre assistance immédiate`,
-        metadata: {
-          requestId: teleportRequest.id,
-          clientId,
-          sessionType,
-          priority: 'high'
-        },
-        isRead: false,
+        read: false,
         createdAt: new Date()
       }
     });
@@ -126,15 +120,10 @@ export async function PUT(request: NextRequest) {
       await db.notification.create({
         data: {
           userId: clientId,
-          type: 'expert_teleport_accepted',
+          type: 'SYSTEM_ANNOUNCEMENT',
           title: 'Expert connecté',
           message: `L'expert ${expertId} a accepté votre demande`,
-          metadata: {
-            requestId,
-            sessionId: teleportSession.id,
-            expertId
-          },
-          isRead: false,
+          read: false,
           createdAt: new Date()
         }
       });
@@ -155,14 +144,10 @@ export async function PUT(request: NextRequest) {
       await db.notification.create({
         data: {
           userId: clientId,
-          type: 'expert_teleport_rejected',
+          type: 'SYSTEM_ANNOUNCEMENT',
           title: 'Expert indisponible',
           message: 'L\'expert n\'est pas disponible actuellement',
-          metadata: {
-            requestId,
-            expertId
-          },
-          isRead: false,
+          read: false,
           createdAt: new Date()
         }
       });
@@ -243,19 +228,22 @@ export async function GET(request: NextRequest) {
         status: 'active'
       },
       include: {
-        request: true,
-        expert: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+        request: {
+          include: {
+            expert: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            },
+            client: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
           }
         }
       }
@@ -274,16 +262,19 @@ export async function GET(request: NextRequest) {
         expiresAt: req.expiresAt,
         ...(role === 'expert' ? { client: req.client } : { expert: req.expert })
       })),
-      activeSessions: activeSessions.map(session => ({
-        id: session.id,
-        requestId: session.requestId,
-        status: session.status,
-        startTime: session.startTime,
-        sessionType: session.sessionType,
-        metadata: session.metadata,
-        expert: session.expert,
-        client: session.client
-      }))
+      activeSessions: activeSessions.map(session => {
+        const s = session as any;
+        return {
+          id: s.id,
+          requestId: s.requestId,
+          status: s.status,
+          startTime: s.startTime,
+          sessionType: s.sessionType,
+          metadata: s.metadata,
+          expert: s.request?.expert,
+          client: s.request?.client
+        };
+      })
     });
   } catch (error) {
     console.error('Erreur lors de la récupération des demandes de téléportation:', error);

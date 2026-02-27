@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Trophy, 
-  Medal, 
+import {
+  Trophy,
+  Medal,
   Crown,
   Star,
   TrendingUp,
@@ -43,11 +43,11 @@ export function Leaderboard({ userId, showPeriodSelector = true }: LeaderboardPr
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/gamification/leaderboard?userId=${userId}&period=${period}`);
+      const response = await fetch(`/api/gamification/leaderboard?period=${period}`);
       const data = await response.json();
-      
+
       setLeaderboard(data.leaderboard || []);
-      
+
       // Trouver le rang de l'utilisateur
       if (userId) {
         const userIndex = data.leaderboard?.findIndex((user: LeaderboardUser) => user.id === userId);
@@ -152,15 +152,14 @@ export function Leaderboard({ userId, showPeriodSelector = true }: LeaderboardPr
             {leaderboard.map((user, index) => {
               const isCurrentUser = user.id === userId;
               const rank = index + 1;
-              
+
               return (
                 <div
                   key={user.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                    isCurrentUser 
-                      ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${isCurrentUser
+                      ? 'bg-blue-50 border-blue-200 shadow-sm'
                       : 'hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {/* Rank */}
                   <div className="flex items-center justify-center w-10">

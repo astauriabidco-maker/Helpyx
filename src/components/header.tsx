@@ -9,12 +9,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from '@/components/ui/notification-dropdown';
-import { 
-  BarChart3, 
-  LogOut, 
-  Settings, 
-  User, 
-  HelpCircle, 
+import {
+  BarChart3,
+  LogOut,
+  Settings,
+  User,
+  HelpCircle,
   Bell,
   Moon,
   Sun,
@@ -27,13 +27,13 @@ interface HeaderProps {
   logo?: string;
 }
 
-export function Header({ companyName = "TechSupport", logo }: HeaderProps) {
+export function Header({ companyName = "Helpyx", logo }: HeaderProps) {
   const { user, isLoading, logout } = useUnifiedAuth();
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const canManageTickets = user?.role === 'AGENT' || user?.role === 'ADMIN';
-  const isSuperAdmin = user?.email === 'admin@platform.com' || user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = user?.role === 'ADMIN' || user?.email === 'admin@platform.com';
   const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
 
   const getDashboardPath = () => {
@@ -85,9 +85,9 @@ export function Header({ companyName = "TechSupport", logo }: HeaderProps) {
         {/* Logo et Nom de l'entreprise */}
         <div className="flex items-center gap-4">
           {logo ? (
-            <img 
-              src={logo} 
-              alt={`${companyName} logo`} 
+            <img
+              src={logo}
+              alt={`${companyName} logo`}
               className="h-8 w-8 rounded-lg object-cover"
             />
           ) : (
@@ -103,11 +103,11 @@ export function Header({ companyName = "TechSupport", logo }: HeaderProps) {
               Support Client
             </p>
           </div>
-          
+
           {canManageTickets && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => router.push(getDashboardPath())}
               className="hidden sm:flex"
             >
@@ -178,24 +178,24 @@ export function Header({ companyName = "TechSupport", logo }: HeaderProps) {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
               </DropdownMenuItem>
-              
+
               {isSuperAdmin && (
                 <DropdownMenuItem onClick={() => router.push('/admin')} className="cursor-pointer">
                   <Shield className="mr-2 h-4 w-4" />
                   <span>Administration Globale</span>
                 </DropdownMenuItem>
               )}
-              
+
               <DropdownMenuItem onClick={() => router.push('/tickets/demo')} className="cursor-pointer">
                 <Play className="mr-2 h-4 w-4" />
                 <span>Démo Formulaire</span>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onClick={() => router.push(getSettingsPath())} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Paramètres</span>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem className="cursor-pointer">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 <span>Aide</span>

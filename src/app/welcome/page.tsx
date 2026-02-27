@@ -5,16 +5,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowRight, 
-  Shield, 
-  Brain, 
-  Zap, 
-  Users, 
-  BarChart3, 
-  MessageSquare, 
-  Package, 
-  Settings, 
+import {
+  ArrowRight,
+  Shield,
+  Brain,
+  Zap,
+  Users,
+  BarChart3,
+  MessageSquare,
+  Package,
+  Settings,
   CheckCircle,
   Star,
   TrendingUp,
@@ -182,9 +182,8 @@ export default function Welcome() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Navigation */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-      }`}>
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
+        }`}>
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -192,10 +191,10 @@ export default function Welcome() {
                 <Shield className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                TechSupport Pro
+                Helpyx
               </span>
             </div>
-            
+
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Fonctionnalités</a>
               <a href="#solutions" className="text-gray-600 hover:text-gray-900 transition-colors">Solutions</a>
@@ -226,7 +225,7 @@ export default function Welcome() {
             <Sparkles className="w-4 h-4 mr-2" />
             Nouvelle Génération de Support Technique
           </Badge>
-          
+
           <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
             Support Technique
             <br />
@@ -234,9 +233,9 @@ export default function Welcome() {
               Augmenté par l'IA
             </span>
           </h1>
-          
+
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Transformez votre support client avec une plateforme intelligente qui combine 
+            Transformez votre support client avec une plateforme intelligente qui combine
             automatisation, gamification et analytics pour une expérience sans précédent.
           </p>
 
@@ -476,13 +475,13 @@ export default function Welcome() {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <Shield className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">TechSupport Pro</span>
+                <span className="text-xl font-bold">Helpyx</span>
               </div>
               <p className="text-gray-400">
                 La plateforme de support technique de nouvelle génération
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Produit</h4>
               <ul className="space-y-2 text-gray-400">
@@ -491,7 +490,7 @@ export default function Welcome() {
                 <li><a href="/tickets/demo" className="hover:text-white transition-colors">Démo</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Solutions</h4>
               <ul className="space-y-2 text-gray-400">
@@ -500,7 +499,7 @@ export default function Welcome() {
                 <li><a href="/gamification" className="hover:text-white transition-colors">Gamification</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Entreprise</h4>
               <ul className="space-y-2 text-gray-400">
@@ -510,9 +509,9 @@ export default function Welcome() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 TechSupport Pro. Tous droits réservés.</p>
+            <p>&copy; 2024 Helpyx. Tous droits réservés.</p>
           </div>
         </div>
       </footer>

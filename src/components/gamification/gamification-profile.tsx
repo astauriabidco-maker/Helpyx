@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Trophy, 
-  Star, 
-  Zap, 
-  Target, 
+import {
+  Trophy,
+  Star,
+  Zap,
+  Target,
   Calendar,
   Award,
   TrendingUp,
@@ -72,19 +72,19 @@ export function GamificationProfile({ userId }: GamificationProfileProps) {
   const fetchGamificationData = async () => {
     try {
       setLoading(true);
-      
-      // Récupérer les statistiques
-      const statsResponse = await fetch(`/api/gamification/stats?userId=${userId}`);
+
+      // Récupérer les statistiques (auth via session, pas userId)
+      const statsResponse = await fetch(`/api/gamification/stats`);
       const statsData = await statsResponse.json();
       setStats(statsData.stats);
 
       // Récupérer les achievements
-      const achievementsResponse = await fetch(`/api/gamification/achievements?userId=${userId}`);
+      const achievementsResponse = await fetch(`/api/gamification/achievements`);
       const achievementsData = await achievementsResponse.json();
       setAchievements(achievementsData.achievements || []);
 
       // Récupérer les activités
-      const activitiesResponse = await fetch(`/api/gamification/activities?userId=${userId}`);
+      const activitiesResponse = await fetch(`/api/gamification/activities`);
       const activitiesData = await activitiesResponse.json();
       setActivities(activitiesData.activities || []);
 
@@ -100,11 +100,11 @@ export function GamificationProfile({ userId }: GamificationProfileProps) {
       const response = await fetch('/api/gamification/bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, type: 'daily' })
+        body: JSON.stringify({ type: 'daily' })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setDailyBonusClaimed(true);
         fetchGamificationData(); // Rafraîchir les données
@@ -248,7 +248,7 @@ export function GamificationProfile({ userId }: GamificationProfileProps) {
               <p className="font-medium">Réclamez votre bonus quotidien</p>
               <p className="text-sm text-gray-600">Gagnez 25 points chaque jour en vous connectant</p>
             </div>
-            <Button 
+            <Button
               onClick={claimDailyBonus}
               disabled={dailyBonusClaimed}
               className="min-w-32"

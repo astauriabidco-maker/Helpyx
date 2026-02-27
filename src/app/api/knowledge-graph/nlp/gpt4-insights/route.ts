@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 export async function POST(request: NextRequest) {
   try {
     const { context, analyses, insightTypes } = await request.json();
 
-    const zai = await ZAI.create();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
 
     // Génération d'insights profonds avec GPT-4
     const insightsPrompt = `

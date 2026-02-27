@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     ];
 
     // Create inventory items
-    const createdItems = [];
+    const createdItems: any[] = [];
     for (const item of sampleItems) {
       const existing = await db.inventory.findFirst({
         where: { 

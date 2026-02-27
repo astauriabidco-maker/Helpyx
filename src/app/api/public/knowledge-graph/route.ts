@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Rate limiting
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
@@ -81,13 +81,13 @@ export async function GET(request: NextRequest) {
     }
 
     const engine = getKnowledgeGraphEngine();
-    
+
     // Recherche contextuelle
     const results = await engine.contextualSearch({
       query,
       context: {
         type: type || undefined
-      },
+      } as any,
       semantic: true,
       filters: {
         maxResults: limit,
@@ -101,9 +101,9 @@ export async function GET(request: NextRequest) {
       name: result.entity.name,
       type: result.entity.type,
       description: result.entity.description,
-      confidence: Math.round(result.confidence * 100),
+      confidence: Math.round((result as any).confidence * 100),
       properties: result.entity.properties,
-      relatedEntities: result.relatedEntities.map(entity => ({
+      relatedEntities: (result.relatedEntities || []).map(entity => ({
         id: entity.id,
         name: entity.name,
         type: entity.type,
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
@@ -225,7 +225,7 @@ async function enrichExternalData(data: any, engine: KnowledgeGraphEngine) {
         id: r.entity.id,
         name: r.entity.name,
         type: r.entity.type,
-        confidence: Math.round(r.confidence * 100)
+        confidence: Math.round((r as any).confidence * 100)
       })),
       insights: results.slice(0, 3).map(r => r.entity.description)
     };
@@ -237,12 +237,12 @@ async function enrichExternalData(data: any, engine: KnowledgeGraphEngine) {
 
 async function validateEntities(data: any, engine: KnowledgeGraphEngine) {
   try {
-    const validationResults = [];
+    const validationResults: any[] = [];
 
     for (const entity of data.entities || []) {
       const results = await engine.contextualSearch({
         query: entity.name,
-        context: { type: entity.type },
+        context: { type: entity.type } as any,
         semantic: true,
         filters: { maxResults: 3, minConfidence: 0.7 }
       });
@@ -252,10 +252,10 @@ async function validateEntities(data: any, engine: KnowledgeGraphEngine) {
         matches: results.map(r => ({
           id: r.entity.id,
           name: r.entity.name,
-          confidence: Math.round(r.confidence * 100)
+          confidence: Math.round((r as any).confidence * 100)
         })),
         isValid: results.length > 0,
-        confidence: results.length > 0 ? Math.max(...results.map(r => r.confidence)) : 0
+        confidence: results.length > 0 ? Math.max(...results.map((r: any) => r.confidence)) : 0
       });
     }
 
@@ -268,11 +268,11 @@ async function validateEntities(data: any, engine: KnowledgeGraphEngine) {
 
 async function suggestRelations(data: any, engine: KnowledgeGraphEngine) {
   try {
-    const suggestions = [];
+    const suggestions: any[] = [];
 
     for (const entity of data.entities || []) {
       const relatedEntities = engine.getRelatedEntities(entity.id, 2);
-      
+
       suggestions.push({
         entityId: entity.id,
         entityName: entity.name,

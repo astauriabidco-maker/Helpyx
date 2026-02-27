@@ -17,20 +17,20 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponse & { socket: any
   }
 
   console.log('Initializing Socket.io server...');
-  
+
   const httpServer: NetServer = res.socket.server as any;
   const io = new ServerIO(httpServer, {
     path: '/api/socket/io',
     addTrailingSlash: false,
     cors: {
-      origin: "*",
+      origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
       methods: ["GET", "POST"]
     }
   });
 
   // Store the server instance globally
   setServer(io);
-  
+
   // Setup socket handlers
   setupSocket(io);
 

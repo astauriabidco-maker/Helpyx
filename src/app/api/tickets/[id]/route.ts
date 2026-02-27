@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { getServer } from '@/lib/socket';
-import { 
-  notifyTicketAssigned, 
-  notifyTicketUpdated, 
-  notifyTicketClosed 
+import {
+  notifyTicketAssigned,
+  notifyTicketUpdated,
+  notifyTicketClosed
 } from '@/lib/socket';
 import { onTicketStatusChanged, onTicketPriorityChanged } from '@/lib/workflows';
 
@@ -36,11 +36,12 @@ const updateTicketSchema = z.object({
 // GET - Récupérer un ticket spécifique
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ticketId = parseInt(params.id);
-    
+    const { id } = await params;
+    const ticketId = parseInt(id);
+
     if (isNaN(ticketId)) {
       return NextResponse.json(
         { error: 'ID de ticket invalide' },
@@ -89,11 +90,12 @@ export async function GET(
 // PUT - Mettre à jour un ticket
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ticketId = parseInt(params.id);
-    
+    const { id } = await params;
+    const ticketId = parseInt(id);
+
     if (isNaN(ticketId)) {
       return NextResponse.json(
         { error: 'ID de ticket invalide' },
@@ -166,10 +168,10 @@ export async function PUT(
       const io = getServer();
       if (io) {
         notifyTicketAssigned(
-          io, 
-          ticketId.toString(), 
-          `TICKET-${ticketId.toString().padStart(6, '0')}`, 
-          validatedData.assignedToId, 
+          io,
+          ticketId.toString(),
+          `TICKET-${ticketId.toString().padStart(6, '0')}`,
+          validatedData.assignedToId,
           existingTicket.userId
         );
       }
@@ -208,7 +210,7 @@ export async function PUT(
       }
     });
 
-      // Notifier le créateur du ticket si nécessaire
+    // Notifier le créateur du ticket si nécessaire
     if (validatedData.status && validatedData.status !== existingTicket.status) {
       await db.notification.create({
         data: {
@@ -232,11 +234,11 @@ export async function PUT(
       const io = getServer();
       if (io) {
         notifyTicketUpdated(
-          io, 
-          ticketId.toString(), 
-          `TICKET-${ticketId.toString().padStart(6, '0')}`, 
-          validatedData.status, 
-          updatedTicket.assignedToId
+          io,
+          ticketId.toString(),
+          `TICKET-${ticketId.toString().padStart(6, '0')}`,
+          validatedData.status,
+          updatedTicket.assignedToId ?? undefined
         );
       }
 
@@ -246,7 +248,7 @@ export async function PUT(
           data: {
             title: 'Ticket résolu',
             message: `Votre ticket #${ticketId} a été résolu avec succès`,
-            type: 'TICKET_CLOSED',
+            type: 'TICKET_RESOLVED',
             userId: existingTicket.userId,
             ticketId: ticketId,
           }
@@ -254,11 +256,11 @@ export async function PUT(
 
         if (io) {
           notifyTicketClosed(
-            io, 
-            ticketId.toString(), 
-            `TICKET-${ticketId.toString().padStart(6, '0')}`, 
-            existingTicket.userId, 
-            updatedTicket.assignedToId
+            io,
+            ticketId.toString(),
+            `TICKET-${ticketId.toString().padStart(6, '0')}`,
+            existingTicket.userId,
+            updatedTicket.assignedToId ?? undefined
           );
         }
       }
@@ -281,10 +283,10 @@ export async function PUT(
 
   } catch (error) {
     console.error('Erreur lors de la mise à jour du ticket:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }
@@ -299,11 +301,12 @@ export async function PUT(
 // DELETE - Supprimer un ticket
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ticketId = parseInt(params.id);
-    
+    const { id } = await params;
+    const ticketId = parseInt(id);
+
     if (isNaN(ticketId)) {
       return NextResponse.json(
         { error: 'ID de ticket invalide' },

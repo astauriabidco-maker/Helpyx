@@ -170,7 +170,7 @@ Merci de votre patience,
           { name: 'updateFrequency', type: 'text', required: true, description: 'Fréquence des mises à jour' },
           { name: 'agentName', type: 'text', required: true, description: 'Nom de l\'agent' }
         ],
-        tone: 'professional',
+        tone: 'formal',
         context: ['diagnosis', 'investigation'],
         successRate: 88,
         usageCount: 850,
@@ -263,12 +263,12 @@ Nous vous remercions de votre compréhension,
 
       // Sélectionner le template approprié
       const template = await this.selectBestTemplate(ticketData, responseType, personalizationData);
-      
+
       // Personnaliser le template
       const personalizedContent = await this.personalizeTemplate(
-        template, 
-        ticketData, 
-        personalizationData, 
+        template,
+        ticketData,
+        personalizationData,
         zai
       );
 
@@ -282,7 +282,7 @@ Nous vous remercions de votre compréhension,
 
       // Générer des suggestions
       const suggestions = await this.generateResponseSuggestions(
-        enhancedContent,
+        enhancedContent.content,
         ticketData,
         personalizationData,
         zai
@@ -290,7 +290,7 @@ Nous vous remercions de votre compréhension,
 
       // Calculer les métriques de qualité
       const qualityMetrics = await this.calculateResponseQuality(
-        enhancedContent,
+        enhancedContent.content,
         ticketData,
         personalizationData
       );
@@ -359,7 +359,7 @@ Nous vous remercions de votre compréhension,
     });
 
     // Retourner le template avec le score le plus élevé
-    const best = scoredTemplates.reduce((prev, current) => 
+    const best = scoredTemplates.reduce((prev, current) =>
       current.score > prev.score ? current : prev
     );
 
@@ -399,7 +399,7 @@ Nous vous remercions de votre compréhension,
         personalizationData,
         zai
       );
-      
+
       variables[variable.name] = value;
       content = content.replace(new RegExp(`{{${variable.name}}}`, 'g'), value);
     }
@@ -473,7 +473,7 @@ Retourne uniquement la réponse améliorée, sans explications.
       });
 
       const enhancedContent = completion.choices[0]?.message?.content;
-      
+
       if (enhancedContent && enhancedContent.trim().length > response.content.length * 0.8) {
         return {
           ...response,
@@ -536,14 +536,14 @@ Format JSON avec tableau d'objets ayant : type, message, priority, autoApply.
       if (!response) return [];
 
       const suggestionsData = JSON.parse(response);
-      
+
       return (Array.isArray(suggestionsData) ? suggestionsData : []).map((suggestion, index) => ({
-        type: ['improvement', 'alternative', 'additional_info'].includes(suggestion.type) 
-          ? suggestion.type 
+        type: ['improvement', 'alternative', 'additional_info'].includes(suggestion.type)
+          ? suggestion.type
           : 'improvement',
         message: suggestion.message || '',
-        priority: ['low', 'medium', 'high'].includes(suggestion.priority) 
-          ? suggestion.priority 
+        priority: ['low', 'medium', 'high'].includes(suggestion.priority)
+          ? suggestion.priority
           : 'medium',
         autoApply: suggestion.autoApply || false
       }));
@@ -678,7 +678,7 @@ Génère uniquement la réponse, sans explications.
       });
 
       const content = completion.choices[0]?.message?.content || '';
-      
+
       return {
         content: content.trim(),
         variables: {},
@@ -739,7 +739,7 @@ Retourne uniquement la réponse adaptée.
       });
 
       const adaptedContent = completion.choices[0]?.message?.content;
-      
+
       if (adaptedContent && adaptedContent.trim().length > 0) {
         return { content: adaptedContent.trim(), tone: preferredStyle };
       }
@@ -792,7 +792,7 @@ Retourne uniquement la réponse adaptée.
   private static calculateEmpathy(content: string, personalizationData: PersonalizationData): number {
     // Simplifié : recherche de mots empathiques
     const empatheticWords = ['comprendre', 'désolé', 'réellement', 'sincèrement', 'plaisir', 'merci'];
-    const empatheticCount = empatheticWords.filter(word => 
+    const empatheticCount = empatheticWords.filter(word =>
       content.toLowerCase().includes(word)
     ).length;
 
@@ -810,7 +810,7 @@ Retourne uniquement la réponse adaptée.
   private static calculateCompleteness(content: string, ticketData: any): number {
     // Simplifié : basé sur la présence d'informations clés
     let score = 0;
-    
+
     if (content.includes('ticket') || content.includes('demande')) score += 25;
     if (content.includes('prochaine') || content.includes('suite')) score += 25;
     if (content.includes('contact') || content.includes('disponible')) score += 25;
@@ -822,11 +822,11 @@ Retourne uniquement la réponse adaptée.
   private static calculateAppropriateness(content: string, personalizationData: PersonalizationData): number {
     // Simplifié : basé sur le style de communication
     const preferredStyle = personalizationData.customerPreferences.communicationStyle;
-    
+
     if (preferredStyle === 'formal' && content.includes('Cordialement')) return 90;
     if (preferredStyle === 'casual' && !content.includes('Cordialement')) return 85;
     if (preferredStyle === 'technical' && content.includes('technique')) return 88;
-    
+
     return 75;
   }
 

@@ -220,8 +220,8 @@ export default function PostGigPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header companyName="TechSupport" />
-      
+      <Header companyName="Helpyx" />
+
       <main className="container px-4 py-8 md:px-8">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}

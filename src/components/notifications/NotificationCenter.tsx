@@ -20,12 +20,26 @@ interface Notification {
   data?: any;
 }
 
-export const NotificationCenter: React.FC<{ userId?: string; userRole?: string }> = ({ 
-  userId, 
-  userRole 
+export const NotificationCenter: React.FC<{ userId?: string; userRole?: string }> = ({
+  userId,
+  userRole
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, isConnected, markNotificationAsRead, clearNotifications } = useSocket(userId, userRole);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { isConnected, on, off } = useSocket();
+
+  useEffect(() => {
+    const handleNotification = (notification: Notification) => {
+      setNotifications(prev => [notification, ...prev]);
+    };
+    on('notification', handleNotification);
+    return () => off('notification', handleNotification);
+  }, [on, off]);
+
+  const markNotificationAsRead = (index: number) => {
+    setNotifications(prev => prev.filter((_, i) => i !== index));
+  };
+  const clearNotifications = () => setNotifications([]);
   const unreadCount = notifications.length;
 
   const getNotificationIcon = (type: string) => {
@@ -64,21 +78,21 @@ export const NotificationCenter: React.FC<{ userId?: string; userRole?: string }
 
   const handleNotificationClick = (notification: Notification, index: number) => {
     markNotificationAsRead(index);
-    
+
     // Navigate to ticket if applicable
     if (notification.ticketId) {
       window.location.href = `/tickets/${notification.ticketId}`;
     }
-    
+
     setIsOpen(false);
   };
 
   const formatTimestamp = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
-      return formatDistanceToNow(date, { 
-        addSuffix: true, 
-        locale: fr 
+      return formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: fr
       });
     } catch {
       return 'Invalid date';
@@ -96,8 +110,8 @@ export const NotificationCenter: React.FC<{ userId?: string; userRole?: string }
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
+          <Badge
+            variant="destructive"
             className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -141,7 +155,7 @@ export const NotificationCenter: React.FC<{ userId?: string; userRole?: string }
               </Button>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-0">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">

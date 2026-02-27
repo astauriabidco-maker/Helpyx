@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-// GET - Récupérer les notifications de l'utilisateur
+// GET - Récupérer les notifications de l'utilisateur connecté
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Utilisateur non authentifié' },
         { status: 401 }
       );
     }
+
+    const userId = session.user.id;
 
     // Récupérer les paramètres de requête
     const { searchParams } = new URL(request.url);
@@ -50,9 +54,15 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Compter le total
+    const total = await db.notification.count({
+      where: { userId }
+    });
+
     return NextResponse.json({
       notifications,
       unreadCount,
+      total,
       hasMore: notifications.length === limit
     });
 
@@ -65,52 +75,94 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST - Créer une notification (admin / système)
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { title, message, type, userId, ticketId } = body;
+
+    if (!title || !message) {
+      return NextResponse.json({ error: 'Titre et message requis' }, { status: 400 });
+    }
+
+    // Si un userId est spécifié, créer pour cet utilisateur, sinon pour tous
+    if (userId) {
+      const notification = await db.notification.create({
+        data: {
+          title,
+          message,
+          type: type || 'SYSTEM_ANNOUNCEMENT',
+          userId,
+          ticketId: ticketId || null,
+        },
+      });
+      return NextResponse.json({ notification });
+    } else {
+      // Broadcast à tous les utilisateurs de la même entreprise
+      const companyId = session.user.companyId;
+      const users = await db.user.findMany({
+        where: companyId ? { companyId } : {},
+        select: { id: true },
+      });
+
+      const notifications = await Promise.all(
+        users.map(u =>
+          db.notification.create({
+            data: {
+              title,
+              message,
+              type: type || 'SYSTEM_ANNOUNCEMENT',
+              userId: u.id,
+              ticketId: ticketId || null,
+            },
+          })
+        )
+      );
+
+      return NextResponse.json({ count: notifications.length });
+    }
+  } catch (error) {
+    console.error('Erreur création notification:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
 // PUT - Marquer des notifications comme lues
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Utilisateur non authentifié' },
-        { status: 401 }
-      );
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const body = await request.json();
     const { notificationIds, markAllAsRead } = body;
 
     let updateResult;
 
     if (markAllAsRead) {
-      // Marquer toutes les notifications de l'utilisateur comme lues
       updateResult = await db.notification.updateMany({
-        where: {
-          userId,
-          read: false
-        },
-        data: {
-          read: true
-        }
+        where: { userId, read: false },
+        data: { read: true }
       });
     } else if (notificationIds && Array.isArray(notificationIds)) {
-      // Marquer des notifications spécifiques comme lues
       updateResult = await db.notification.updateMany({
         where: {
-          id: {
-            in: notificationIds
-          },
-          userId // S'assurer que l'utilisateur ne peut marquer que ses propres notifications
+          id: { in: notificationIds },
+          userId
         },
-        data: {
-          read: true
-        }
+        data: { read: true }
       });
     } else {
-      return NextResponse.json(
-        { error: 'Paramètres invalides' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -119,10 +171,34 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erreur lors de la mise à jour des notifications:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour des notifications' },
-      { status: 500 }
-    );
+    console.error('Erreur mise à jour notifications:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
+// DELETE - Supprimer une notification
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requis' }, { status: 400 });
+    }
+
+    await db.notification.deleteMany({
+      where: { id, userId: session.user.id }
+    });
+
+    return NextResponse.json({ message: 'Notification supprimée' });
+  } catch (error) {
+    console.error('Erreur suppression notification:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

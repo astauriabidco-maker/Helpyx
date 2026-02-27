@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrer par métrique si spécifié
     if (metric) {
-      const filteredData = { ...responseData };
+      const filteredData: any = { ...responseData };
       switch (metric) {
         case 'revenue':
           delete filteredData.predictive;
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
             'Content-Disposition': `attachment; filename="bi-export-${new Date().toISOString().split('T')[0]}.csv"`,
           },
         });
-      
+
       case 'xml':
         const xmlData = convertToXML(responseData);
         return new NextResponse(xmlData, {
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
             'Content-Disposition': `attachment; filename="bi-export-${new Date().toISOString().split('T')[0]}.xml"`,
           },
         });
-      
+
       default:
         return NextResponse.json(responseData);
     }
@@ -117,9 +117,9 @@ function convertToCSV(data: any): string {
   const headers = [
     'Date', 'Plan', 'Price', 'Ticket Count', 'Resolution Time', 'Status'
   ];
-  
+
   const rows = data.financial.map((item: any) => [
-    item.date,
+    item.createdAt,
     item.plan,
     item.price,
     item.ticketCount,
@@ -147,7 +147,7 @@ function convertToXML(data: any): string {
   <data>
     ${data.financial.map((item: any) => `
     <record>
-      <date>${item.date}</date>
+      <date>${item.createdAt}</date>
       <plan>${item.plan}</plan>
       <price>${item.price}</price>
       <ticketCount>${item.ticketCount}</ticketCount>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Analyser les tendances avec l'IA
+    const ZAI = (await import('z-ai-web-dev-sdk')).default;
     const zai = await ZAI.create();
-    
+
     const analysisPrompt = `En tant qu'expert en analyse comportementale, analyse les données suivantes et génère des prédictions :
 
 Profil Utilisateur:
@@ -49,14 +50,14 @@ Profil Utilisateur:
 - Fréquence de messages: ${behavioralProfile.messageFrequency}
 
 Historique récent des adaptations:
-${behavioralProfile.adaptations.slice(0, 10).map(a => 
-  `- ${a.ruleName}: ${a.actionType} (efficacité: ${a.effectiveness})`
-).join('\n')}
+${behavioralProfile.adaptations.slice(0, 10).map(a =>
+      `- ${a.ruleName}: ${a.actionType} (efficacité: ${a.effectiveness})`
+    ).join('\n')}
 
 Sessions récentes:
-${behavioralProfile.sessions.slice(0, 5).map(s => 
-  `- Session ${s.sessionId}: ${s.messageCount} messages, score: ${s.sessionScore}`
-).join('\n')}
+${behavioralProfile.sessions.slice(0, 5).map(s =>
+      `- Session ${s.sessionId}: ${s.messageCount} messages, score: ${s.sessionScore}`
+    ).join('\n')}
 
 Génère une prédiction JSON structurée avec:
 1. risqueFrustration (0-100)
@@ -149,10 +150,10 @@ async function enrichPredictions(predictions: any, profile: any, timeframe: stri
   // Calculer les tendances basées sur l'historique
   const recentAdaptations = profile.adaptations.slice(0, 10);
   const adaptationTrends = calculateAdaptationTrends(recentAdaptations);
-  
+
   // Analyser les patterns de session
   const sessionPatterns = analyzeSessionPatterns(profile.sessions);
-  
+
   // Prédire les KPIs basés sur les tendances
   const predictedKpis = predictKPIs(profile, adaptationTrends, sessionPatterns);
 
@@ -189,15 +190,15 @@ function calculateAdaptationTrends(adaptations: any[]) {
     acc[a.ruleName] = (acc[a.ruleName] || 0) + 1;
     return acc;
   }, {});
-  
+
   trends.mostUsedRule = Object.entries(ruleCounts)
-    .sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0] || '';
+    .sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0] || '';
 
   // Analyser la tendance d'efficacité
   if (adaptations.length >= 3) {
     const recent = adaptations.slice(0, 3).reduce((sum, a) => sum + a.effectiveness, 0) / 3;
     const older = adaptations.slice(3, 6).reduce((sum, a) => sum + a.effectiveness, 0) / 3;
-    
+
     if (recent > older + 0.1) trends.effectivenessTrend = 'improving';
     else if (recent < older - 0.1) trends.effectivenessTrend = 'declining';
   }
@@ -208,7 +209,12 @@ function calculateAdaptationTrends(adaptations: any[]) {
 }
 
 function analyzeSessionPatterns(sessions: any[]) {
-  const patterns = {
+  const patterns: {
+    averageSessionScore: number;
+    peakActivityHours: any[];
+    commonEmotionalStates: string[];
+    adaptationFrequency: number;
+  } = {
     averageSessionScore: 0,
     peakActivityHours: [],
     commonEmotionalStates: [],
@@ -290,7 +296,7 @@ async function savePrediction(userId: string, predictions: any) {
     // Sauvegarder dans une table de prédictions (à créer si nécessaire)
     // Pour l'instant, nous pouvons loguer ou utiliser une table existante
     console.log(`Saving prediction for user ${userId}:`, predictions);
-    
+
     // Optionnel: sauvegarder dans une table de logs ou d'analytics
     // await db.behavioralPrediction.create({
     //   data: {

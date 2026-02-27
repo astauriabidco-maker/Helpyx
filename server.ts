@@ -5,14 +5,14 @@ import { Server } from 'socket.io';
 import next from 'next';
 
 const dev = process.env.NODE_ENV !== 'production';
-const currentPort = 3000;
+const currentPort = parseInt(process.env.PORT || '4001', 10);
 const hostname = '0.0.0.0';
 
 // Custom server with Socket.IO integration
 async function createCustomServer() {
   try {
     // Create Next.js app
-    const nextApp = next({ 
+    const nextApp = next({
       dev,
       dir: process.cwd(),
       // In production, use the current directory where .next is located
@@ -29,7 +29,7 @@ async function createCustomServer() {
         // Let Next.js handle HMR WebSocket connections
         return handle(req, res);
       }
-      
+
       // Skip socket.io requests from Next.js handler
       if (req.url?.startsWith('/api/socketio')) {
         return;
@@ -41,7 +41,7 @@ async function createCustomServer() {
     const io = new Server(server, {
       path: '/api/socketio',
       cors: {
-        origin: "*",
+        origin: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000", `http://localhost:${currentPort}`],
         methods: ["GET", "POST"]
       },
       // Handle WebSocket upgrades properly

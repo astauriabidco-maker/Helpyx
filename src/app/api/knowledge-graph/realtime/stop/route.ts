@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importer la fonction stop depuis le module start
+// État local du processing
 let processingInterval: NodeJS.Timeout | null = null;
 let isProcessing = false;
-
-// Variable partagée entre les modules
-export { processingInterval, isProcessing };
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,10 +10,10 @@ export async function POST(request: NextRequest) {
       clearInterval(processingInterval);
       processingInterval = null;
     }
-    
+
     isProcessing = false;
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Real-time processing stopped successfully'
     });
   } catch (error) {

@@ -8,12 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  Target, 
-  BarChart3, 
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Target,
+  BarChart3,
   Brain,
   AlertTriangle,
   CheckCircle,
@@ -25,10 +25,10 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { Header } from '@/components/header';
-import { BiIntegrations } from '@/components/bi/BiIntegrations';
-import { BiAlerts } from '@/components/bi/BiAlerts';
-import { BiRoleDashboards } from '@/components/bi/BiRoleDashboards';
-import { BiCrmErpIntegration } from '@/components/bi/BiCrmErpIntegration';
+import BiIntegrations from '@/components/bi/BiIntegrations';
+import BiAlerts from '@/components/bi/BiAlerts';
+import BiRoleDashboards from '@/components/bi/BiRoleDashboards';
+import BiCrmErpIntegration from '@/components/bi/BiCrmErpIntegration';
 
 interface KPIData {
   label: string;
@@ -120,8 +120,8 @@ export default function PredictiveBIDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header companyName="TechSupport" />
-      
+      <Header companyName="Helpyx" />
+
       <main className="container px-4 py-8 md:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -146,10 +146,9 @@ export default function PredictiveBIDashboard() {
                       <p className="text-2xl font-bold">{kpi.value}</p>
                       <div className="flex items-center gap-1 mt-1">
                         {getTrendIcon(kpi.trend)}
-                        <span className={`text-sm font-medium ${
-                          kpi.trend === 'up' ? 'text-green-600' : 
+                        <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-green-600' :
                           kpi.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                        }`}>
+                          }`}>
                           {kpi.change > 0 ? '+' : ''}{kpi.change}%
                         </span>
                       </div>
@@ -328,7 +327,7 @@ export default function PredictiveBIDashboard() {
                         Économie potentielle: €125K/an
                       </p>
                     </div>
-                    
+
                     <div className="p-4 border-l-4 border-blue-500 bg-blue-50">
                       <h4 className="font-medium text-blue-800 mb-2">Expansion Premium</h4>
                       <p className="text-sm text-blue-700 mb-2">

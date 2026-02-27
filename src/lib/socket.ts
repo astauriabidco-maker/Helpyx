@@ -22,10 +22,22 @@ export const setServer = (server: Server): void => {
   io = server;
 };
 
+// Track online users
+const onlineUsers = new Map<string, { userId: string, role: string, socketId: string }>();
+
 export const setupSocket = (io: Server) => {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
-    
+
+    // Track online user
+    socket.on('declare_online', (data: { userId: string; role: string }) => {
+      console.log(`User ${data.userId} (${data.role}) is online`);
+      onlineUsers.set(socket.id, { userId: data.userId, role: data.role, socketId: socket.id });
+
+      // Emit to all to update online lists
+      io.emit('online_users_update', Array.from(onlineUsers.values()));
+    });
+
     // Join user to their personal room for notifications
     socket.on('join_user_room', (userId: string) => {
       socket.join(`user_${userId}`);
@@ -48,7 +60,7 @@ export const setupSocket = (io: Server) => {
     socket.on('join-ar-session', async (data: { sessionId: string; userType: 'agent' | 'client' }) => {
       socket.join(`ar_session_${data.sessionId}`);
       console.log(`${data.userType} joined AR session: ${data.sessionId}`);
-      
+
       // Notify other participants
       socket.to(`ar_session_${data.sessionId}`).emit('participant_joined', {
         sessionId: data.sessionId,
@@ -60,7 +72,7 @@ export const setupSocket = (io: Server) => {
     socket.on('leave-ar-session', (data: { sessionId: string }) => {
       socket.leave(`ar_session_${data.sessionId}`);
       console.log(`Client left AR session: ${data.sessionId}`);
-      
+
       // Notify other participants
       socket.to(`ar_session_${data.sessionId}`).emit('participant_left', {
         sessionId: data.sessionId,
@@ -71,7 +83,7 @@ export const setupSocket = (io: Server) => {
     // AR Annotations
     socket.on('ar-annotation', async (data: { sessionId: string; annotation: any }) => {
       console.log('AR annotation received:', data);
-      
+
       // Broadcast to all participants in the session
       socket.to(`ar_session_${data.sessionId}`).emit('ar-annotation-received', {
         sessionId: data.sessionId,
@@ -86,7 +98,7 @@ export const setupSocket = (io: Server) => {
     // Expert Teleportation
     socket.on('expert-teleport-request', async (data: { expertId: string; clientId: string; sessionType: 'vr' | 'desktop' }) => {
       console.log('Expert teleport request:', data);
-      
+
       // Create notification for expert
       socket.to(`user_${data.expertId}`).emit('expert-teleport-offer', {
         requestId: `teleport_${Date.now()}`,
@@ -99,10 +111,10 @@ export const setupSocket = (io: Server) => {
 
     socket.on('expert-teleport-accept', async (data: { requestId: string; expertId: string; clientId: string }) => {
       console.log('Expert teleport accepted:', data);
-      
+
       // Create teleport session
       const sessionId = `teleport_session_${Date.now()}`;
-      
+
       // Notify both parties
       socket.to(`user_${data.clientId}`).emit('teleport-session-created', {
         requestId: data.requestId,
@@ -110,7 +122,7 @@ export const setupSocket = (io: Server) => {
         expertId: data.expertId,
         status: 'active'
       });
-      
+
       socket.to(`user_${data.expertId}`).emit('teleport-session-created', {
         requestId: data.requestId,
         sessionId,
@@ -132,10 +144,10 @@ export const setupSocket = (io: Server) => {
     // VR Training
     socket.on('vr-training-start', async (data: { userId: string; trainingId: string }) => {
       console.log('VR training started:', data);
-      
+
       // Join training room
       socket.join(`vr_training_${data.trainingId}`);
-      
+
       // Notify user of training start
       socket.to(`user_${data.userId}`).emit('vr-training-started', {
         trainingId: data.trainingId,
@@ -147,7 +159,7 @@ export const setupSocket = (io: Server) => {
 
     socket.on('vr-training-progress', async (data: { trainingId: string; stepId: string; progress: number; timeSpent: number }) => {
       console.log('VR training progress:', data);
-      
+
       // Broadcast progress to training room
       socket.to(`vr_training_${data.trainingId}`).emit('training-progress-updated', {
         trainingId: data.trainingId,
@@ -161,7 +173,7 @@ export const setupSocket = (io: Server) => {
     // Connection Quality Monitoring
     socket.on('connection-quality', async (data: { sessionId: string; quality: number; latency: number }) => {
       console.log('Connection quality update:', data);
-      
+
       // Broadcast quality metrics to session participants
       socket.to(`ar_session_${data.sessionId}`).emit('connection-quality-update', {
         sessionId: data.sessionId,
@@ -195,6 +207,8 @@ export const setupSocket = (io: Server) => {
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
+      onlineUsers.delete(socket.id);
+      io.emit('online_users_update', Array.from(onlineUsers.values()));
     });
 
     // Send welcome message
@@ -259,7 +273,7 @@ export const notifyTicketAssigned = (io: Server, ticketId: string, ticketNumber:
 
 export const notifyTicketUpdated = (io: Server, ticketId: string, ticketNumber: string, status: string, assignedToId?: string) => {
   const message = `Le ticket ${ticketNumber} a été mis à jour: ${getStatusText(status)}`;
-  
+
   if (assignedToId) {
     sendNotificationToAgent(io, assignedToId, {
       type: 'ticket_updated',

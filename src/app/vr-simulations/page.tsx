@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Target, 
-  Play, 
-  Pause, 
+import {
+  Target,
+  Play,
+  Pause,
   RotateCcw,
   Monitor,
   Zap,
@@ -184,10 +184,10 @@ export default function VRSimulations() {
       feedback: []
     };
     setActiveSession(session);
-    
+
     // Update simulation status
-    setSimulations(prev => prev.map(sim => 
-      sim.id === simulation.id 
+    setSimulations(prev => prev.map(sim =>
+      sim.id === simulation.id
         ? { ...sim, status: 'in-progress', attempts: sim.attempts + 1 }
         : sim
     ));
@@ -225,8 +225,8 @@ export default function VRSimulations() {
   };
 
   const generateFeedback = (score: number): string[] => {
-    const feedback = [];
-    
+    const feedback: string[] = [];
+
     if (score >= 90) {
       feedback.push('Excellent travail! Performance exceptionnelle.');
       feedback.push('Maîtrise parfaite des procédures.');
@@ -237,7 +237,7 @@ export default function VRSimulations() {
       feedback.push('Effort notable. Continuez à vous entraîner.');
       feedback.push('Revoyez les procédures de sécurité.');
     }
-    
+
     return feedback;
   };
 
@@ -282,7 +282,7 @@ export default function VRSimulations() {
     );
   };
 
-  const filteredSimulations = simulations.filter(sim => 
+  const filteredSimulations = simulations.filter(sim =>
     !selectedSimulation || sim.category === selectedSimulation.category
   );
 
@@ -348,7 +348,7 @@ export default function VRSimulations() {
                     <TabsTrigger value="network">Réseau</TabsTrigger>
                     <TabsTrigger value="safety">Sécurité</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="all" className="space-y-4">
                     {filteredSimulations.map((simulation) => {
                       const IconComponent = getCategoryIcon(simulation.category);
@@ -401,7 +401,7 @@ export default function VRSimulations() {
                               Lancer
                             </Button>
                           </div>
-                          
+
                           <div className="border-t pt-3">
                             <p className="text-sm font-medium mb-1">Objectifs:</p>
                             <ul className="text-sm text-muted-foreground space-y-1">
@@ -422,7 +422,7 @@ export default function VRSimulations() {
                       );
                     })}
                   </TabsContent>
-                  
+
                   {categories.map((category) => (
                     <TabsContent key={category.value} value={category.value} className="space-y-4">
                       {filteredSimulations
@@ -477,15 +477,15 @@ export default function VRSimulations() {
                       Durée: {Math.floor((Date.now() - activeSession.startTime.getTime()) / 60000)} min
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Button variant="outline" size="sm" className="w-full">
                       <Pause className="w-4 h-4 mr-2" />
                       Pause
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={() => completeSession(Math.floor(Math.random() * 40) + 60)}
                     >
@@ -493,7 +493,7 @@ export default function VRSimulations() {
                       Terminer
                     </Button>
                   </div>
-                  
+
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
@@ -527,7 +527,7 @@ export default function VRSimulations() {
                     <p className="text-xs text-muted-foreground">Tentatives</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Score moyen</span>
@@ -535,7 +535,7 @@ export default function VRSimulations() {
                       {Math.round(
                         simulations
                           .filter(s => s.score)
-                          .reduce((acc, s) => acc + (s.score || 0), 0) / 
+                          .reduce((acc, s) => acc + (s.score || 0), 0) /
                         simulations.filter(s => s.score).length || 0
                       )}%
                     </span>

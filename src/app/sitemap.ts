@@ -37,7 +37,7 @@ export default function sitemap() {
       priority: 0.5,
     },
     {
-      url: 'https://helpyx.com/auth/login',
+      url: 'https://helpyx.com/auth/signin',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,

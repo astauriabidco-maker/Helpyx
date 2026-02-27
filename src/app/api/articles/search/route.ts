@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 // GET - Recherche intelligente d'articles avec IA
 export async function GET(request: NextRequest) {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Si aucun résultat, essayer une recherche plus large avec l'IA
     if (articles.length === 0) {
       try {
-        const zai = await ZAI.create();
+        const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
         
         const aiResponse = await zai.chat.completions.create({
           messages: [

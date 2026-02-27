@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { 
-  CheckCircle, ArrowRight, Eye, EyeOff, Mail, Lock, Shield, Zap, 
+import {
+  CheckCircle, ArrowRight, Eye, EyeOff, Mail, Lock, Shield, Zap,
   AlertCircle, ArrowLeft, Rocket, Users, Briefcase, Crown, Key,
   Fingerprint, Smartphone, Monitor, Chrome, Github, Building,
   Settings
@@ -19,31 +19,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useUnifiedAuth, useDemoAccounts } from '@/hooks/use-unified-auth';
 
-const demoAccounts = [
-  {
-    role: 'Client',
-    email: 'client@exemple.com',
-    password: 'password123',
-    icon: <Users className="w-4 h-4" />,
-    color: 'from-blue-500 to-cyan-600'
-  },
-  {
-    role: 'Agent',
-    email: 'agent@exemple.com',
-    password: 'password123',
-    icon: <Briefcase className="w-4 h-4" />,
-    color: 'from-purple-500 to-pink-600'
-  },
-  {
-    role: 'Admin',
-    email: 'admin@exemple.com',
-    password: 'password123',
-    icon: <Crown className="w-4 h-4" />,
-    color: 'from-amber-500 to-orange-600'
-  }
-];
 
-export default function SignIn() {
+function SignInContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -102,7 +79,7 @@ export default function SignIn() {
       if (result.success) {
         // Récupérer les informations de l'utilisateur pour la redirection
         let targetPath = '/dashboard/client'; // défaut
-        
+
         if (user?.role === 'ADMIN') {
           targetPath = '/admin';
         } else if (user?.role === 'AGENT') {
@@ -110,7 +87,7 @@ export default function SignIn() {
         } else {
           targetPath = '/dashboard/client';
         }
-        
+
         console.log('Redirecting to:', targetPath);
         router.push(targetPath);
         router.refresh();
@@ -134,10 +111,10 @@ export default function SignIn() {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TechSupport Pro
+              Helpyx
             </span>
           </Link>
-          
+
           <div className="flex items-center space-x-4">
             {isDemoMode && (
               <Badge className="bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-0">
@@ -168,10 +145,10 @@ export default function SignIn() {
                 <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
                   Bon retour sur
                   <br />
-                  TechSupport Pro
+                  Helpyx
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Connectez-vous pour accéder à votre tableau de bord et continuer 
+                  Connectez-vous pour accéder à votre tableau de bord et continuer
                   à transformer votre support technique.
                 </p>
               </div>
@@ -193,11 +170,10 @@ export default function SignIn() {
                     {availableDemoAccounts.map((account) => (
                       <div
                         key={account.role}
-                        className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${
-                          activeDemo === account.role
-                            ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${activeDemo === account.role
+                          ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
                         onClick={() => handleDemoLogin(account)}
                       >
                         <div className="flex items-center justify-between">
@@ -318,8 +294,8 @@ export default function SignIn() {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="remember" 
+                        <Checkbox
+                          id="remember"
                           checked={rememberMe}
                           onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                         />
@@ -332,8 +308,8 @@ export default function SignIn() {
                       </Link>
                     </div>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                       disabled={isLoading}
                     >
@@ -353,8 +329,8 @@ export default function SignIn() {
 
                   {/* Boutons de connexion sociale */}
                   <div className="grid grid-cols-1 gap-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="h-10"
                       onClick={() => handleOAuthSignIn('google')}
                       disabled={isLoading}
@@ -362,8 +338,8 @@ export default function SignIn() {
                       <Chrome className="w-4 h-4 mr-2 text-blue-600" />
                       Continuer avec Google
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="h-10"
                       onClick={() => handleOAuthSignIn('github')}
                       disabled={isLoading}
@@ -371,8 +347,8 @@ export default function SignIn() {
                       <Github className="w-4 h-4 mr-2" />
                       Continuer avec GitHub
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="h-10"
                       onClick={() => handleOAuthSignIn('azure-ad')}
                       disabled={isLoading}
@@ -385,8 +361,8 @@ export default function SignIn() {
                   {/* Lien d'inscription */}
                   <div className="text-center text-sm text-gray-600 pt-4 border-t">
                     Pas encore de compte ?{' '}
-                    <Link 
-                      href="/auth/register" 
+                    <Link
+                      href="/auth/register"
                       className="text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
                     >
                       Créer un compte gratuitement
@@ -414,5 +390,13 @@ export default function SignIn() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50">Chargement...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }

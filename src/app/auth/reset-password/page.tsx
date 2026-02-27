@@ -10,7 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, ArrowLeft, Rocket, CheckCircle, AlertTriangle } from 'lucide-react';
 
-export default function ResetPasswordPage() {
+import { Suspense } from 'react';
+
+function ResetPasswordContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +21,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -70,7 +72,7 @@ export default function ResetPasswordPage() {
       if (response.ok) {
         setSuccess(data.message);
         setTimeout(() => {
-          router.push('/auth/login');
+          router.push('/auth/signin');
         }, 2000);
       } else {
         setError(data.error || 'Erreur lors de la réinitialisation');
@@ -113,7 +115,7 @@ export default function ResetPasswordPage() {
                       Demander un nouveau lien
                     </Button>
                   </Link>
-                  <Link href="/auth/login">
+                  <Link href="/auth/signin">
                     <Button variant="ghost" className="w-full">
                       Retour à la connexion
                     </Button>
@@ -132,7 +134,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Header avec retour */}
         <div className="mb-6 text-center">
-          <Link href="/auth/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+          <Link href="/auth/signin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour à la connexion
           </Link>
@@ -211,9 +213,9 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {/* Bouton de réinitialisation */}
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
@@ -248,5 +250,20 @@ export default function ResetPasswordPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

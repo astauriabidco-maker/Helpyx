@@ -5,10 +5,11 @@ const marketplace = MarketplaceEngine.getInstance();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const gig = await marketplace.getGig(params.id);
+    const { id } = await params;
+    const gig = await marketplace.getGig(id);
 
     if (!gig) {
       return NextResponse.json(
@@ -33,21 +34,22 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { action, ...data } = await request.json();
 
     switch (action) {
       case 'apply':
-        const application = await marketplace.applyToGig(params.id, data.expertId, data);
+        const application = await marketplace.applyToGig(id, data.expertId, data);
         return NextResponse.json({
           success: true,
           data: application
         });
 
       case 'recommend':
-        const recommendations = await marketplace.recommendExperts(params.id);
+        const recommendations = await marketplace.recommendExperts(id);
         return NextResponse.json({
           success: true,
           data: recommendations

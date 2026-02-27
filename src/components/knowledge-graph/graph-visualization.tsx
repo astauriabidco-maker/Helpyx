@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Network, 
-  ZoomIn, 
-  ZoomOut, 
-  RotateCcw, 
-  Download, 
+import {
+  Network,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Download,
   Filter,
   Eye,
   Settings,
@@ -52,19 +52,24 @@ interface GraphEdge {
   strength: number;
 }
 
-export function GraphVisualization({ 
-  entities, 
-  relations, 
-  onEntityClick, 
+export function GraphVisualization({
+  entities,
+  relations,
+  onEntityClick,
   onRelationClick,
-  className = "" 
+  className = ""
 }: GraphVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  
-  const [nodes, setNodes] = useState<GraphNode[]>([]);
-  const [edges, setEdges] = useState<GraphEdge[]>([]);
+  const animationRef = useRef<number>(null);
+
+  // Use refs for simulation data to avoid re-render loops
+  const nodesRef = useRef<GraphNode[]>([]);
+  const edgesRef = useRef<GraphEdge[]>([]);
+
+  const [nodeCount, setNodeCount] = useState(0);
+  const [edgeCount, setEdgeCount] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState(0);
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<Entity | null>(null);
   const [isSimulating, setIsSimulating] = useState(true);
@@ -75,6 +80,25 @@ export function GraphVisualization({
   const [showRelations, setShowRelations] = useState(true);
   const [filterType, setFilterType] = useState<EntityType | 'all'>('all');
   const [nodeSize, setNodeSize] = useState([1]);
+
+  // Keep latest values in refs for the animation loop
+  const isSimulatingRef = useRef(isSimulating);
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const showLabelsRef = useRef(showLabels);
+  const showRelationsRef = useRef(showRelations);
+  const nodeSizeRef = useRef(nodeSize);
+  const selectedEntityRef = useRef(selectedEntity);
+  const hoveredEntityRef = useRef(hoveredEntity);
+
+  useEffect(() => { isSimulatingRef.current = isSimulating; }, [isSimulating]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { showLabelsRef.current = showLabels; }, [showLabels]);
+  useEffect(() => { showRelationsRef.current = showRelations; }, [showRelations]);
+  useEffect(() => { nodeSizeRef.current = nodeSize; }, [nodeSize]);
+  useEffect(() => { selectedEntityRef.current = selectedEntity; }, [selectedEntity]);
+  useEffect(() => { hoveredEntityRef.current = hoveredEntity; }, [hoveredEntity]);
 
   // Couleurs pour les différents types d'entités
   const getEntityColor = (type: EntityType): string => {
@@ -98,14 +122,14 @@ export function GraphVisualization({
 
   // Initialiser les nœuds et les arêtes
   useEffect(() => {
-    const filteredEntities = filterType === 'all' 
-      ? entities 
+    const filteredEntities = filterType === 'all'
+      ? entities
       : entities.filter(e => e.type === filterType);
 
     const newNodes: GraphNode[] = filteredEntities.map((entity, index) => {
       const angle = (index / filteredEntities.length) * 2 * Math.PI;
       const radius = Math.min(300, filteredEntities.length * 10);
-      
+
       return {
         id: entity.id,
         x: Math.cos(angle) * radius + 400,
@@ -119,8 +143,8 @@ export function GraphVisualization({
     });
 
     const newEdges: GraphEdge[] = relations
-      .filter(r => 
-        newNodes.some(n => n.id === r.sourceId) && 
+      .filter(r =>
+        newNodes.some(n => n.id === r.sourceId) &&
         newNodes.some(n => n.id === r.targetId)
       )
       .map(relation => ({
@@ -131,77 +155,79 @@ export function GraphVisualization({
         strength: relation.weight
       }));
 
-    setNodes(newNodes);
-    setEdges(newEdges);
+    nodesRef.current = newNodes;
+    edgesRef.current = newEdges;
+    setNodeCount(newNodes.length);
+    setEdgeCount(newEdges.length);
+    if (newNodes.length > 0) {
+      setAvgConfidence(Math.round(newNodes.reduce((sum, n) => sum + n.entity.confidence, 0) / newNodes.length * 100));
+    }
   }, [entities, relations, filterType]);
 
-  // Simulation force-directed
+  // Simulation force-directed — mutates refs directly, no setState
   const simulateForces = () => {
-    if (!isSimulating) return;
+    if (!isSimulatingRef.current) return;
 
-    setNodes(prevNodes => {
-      const newNodes = [...prevNodes];
-      
-      // Forces d'attraction/répulsion entre les nœuds
-      for (let i = 0; i < newNodes.length; i++) {
-        for (let j = i + 1; j < newNodes.length; j++) {
-          const dx = newNodes[j].x - newNodes[i].x;
-          const dy = newNodes[j].y - newNodes[i].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance > 0 && distance < 200) {
-            const force = (200 - distance) / distance * 0.01;
-            const fx = dx * force;
-            const fy = dy * force;
-            
-            newNodes[i].vx -= fx;
-            newNodes[i].vy -= fy;
-            newNodes[j].vx += fx;
-            newNodes[j].vy += fy;
-          }
-        }
-      }
+    const nodes = nodesRef.current;
+    const edges = edgesRef.current;
 
-      // Forces des arêtes
-      edges.forEach(edge => {
-        const dx = edge.target.x - edge.source.x;
-        const dy = edge.target.y - edge.source.y;
+    // Forces d'attraction/répulsion entre les nœuds
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[j].x - nodes[i].x;
+        const dy = nodes[j].y - nodes[i].y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-          const force = (distance - 100) * edge.strength * 0.001;
+
+        if (distance > 0 && distance < 200) {
+          const force = (200 - distance) / distance * 0.01;
           const fx = dx * force;
           const fy = dy * force;
-          
-          const sourceNode = newNodes.find(n => n.id === edge.source.id);
-          const targetNode = newNodes.find(n => n.id === edge.target.id);
-          
-          if (sourceNode && targetNode) {
-            sourceNode.vx += fx;
-            sourceNode.vy += fy;
-            targetNode.vx -= fx;
-            targetNode.vy -= fy;
-          }
+
+          nodes[i].vx -= fx;
+          nodes[i].vy -= fy;
+          nodes[j].vx += fx;
+          nodes[j].vy += fy;
         }
-      });
+      }
+    }
 
-      // Appliquer les vitesses et amortissement
-      newNodes.forEach(node => {
-        node.x += node.vx;
-        node.y += node.vy;
-        node.vx *= 0.9;
-        node.vy *= 0.9;
+    // Forces des arêtes
+    edges.forEach(edge => {
+      const dx = edge.target.x - edge.source.x;
+      const dy = edge.target.y - edge.source.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Garder les nœuds dans les limites
-        node.x = Math.max(50, Math.min(750, node.x));
-        node.y = Math.max(50, Math.min(550, node.y));
-      });
+      if (distance > 0) {
+        const force = (distance - 100) * edge.strength * 0.001;
+        const fx = dx * force;
+        const fy = dy * force;
 
-      return newNodes;
+        const sourceNode = nodes.find(n => n.id === edge.source.id);
+        const targetNode = nodes.find(n => n.id === edge.target.id);
+
+        if (sourceNode && targetNode) {
+          sourceNode.vx += fx;
+          sourceNode.vy += fy;
+          targetNode.vx -= fx;
+          targetNode.vy -= fy;
+        }
+      }
+    });
+
+    // Appliquer les vitesses et amortissement
+    nodes.forEach(node => {
+      node.x += node.vx;
+      node.y += node.vy;
+      node.vx *= 0.9;
+      node.vy *= 0.9;
+
+      // Garder les nœuds dans les limites
+      node.x = Math.max(50, Math.min(750, node.x));
+      node.y = Math.max(50, Math.min(550, node.y));
     });
   };
 
-  // Dessiner le graphe
+  // Dessiner le graphe — reads from refs
   const draw = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -209,20 +235,30 @@ export function GraphVisualization({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const nodes = nodesRef.current;
+    const edges = edgesRef.current;
+    const currentZoom = zoomRef.current;
+    const currentPan = panRef.current;
+    const currentNodeSize = nodeSizeRef.current;
+    const currentShowLabels = showLabelsRef.current;
+    const currentShowRelations = showRelationsRef.current;
+    const currentSelected = selectedEntityRef.current;
+    const currentHovered = hoveredEntityRef.current;
+
     // Effacer le canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Appliquer zoom et pan
     ctx.save();
-    ctx.translate(pan.x, pan.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(currentPan.x, currentPan.y);
+    ctx.scale(currentZoom, currentZoom);
 
     // Dessiner les arêtes
-    if (showRelations) {
+    if (currentShowRelations) {
       edges.forEach(edge => {
         const sourceNode = nodes.find(n => n.id === edge.source.id);
         const targetNode = nodes.find(n => n.id === edge.target.id);
-        
+
         if (sourceNode && targetNode) {
           ctx.beginPath();
           ctx.moveTo(sourceNode.x, sourceNode.y);
@@ -235,10 +271,10 @@ export function GraphVisualization({
           const angle = Math.atan2(targetNode.y - sourceNode.y, targetNode.x - sourceNode.x);
           const arrowLength = 10;
           const arrowAngle = Math.PI / 6;
-          
+
           const arrowX = targetNode.x - Math.cos(angle) * targetNode.radius;
           const arrowY = targetNode.y - Math.sin(angle) * targetNode.radius;
-          
+
           ctx.beginPath();
           ctx.moveTo(arrowX, arrowY);
           ctx.lineTo(
@@ -257,15 +293,15 @@ export function GraphVisualization({
 
     // Dessiner les nœuds
     nodes.forEach(node => {
-      const isHovered = hoveredEntity?.id === node.entity.id;
-      const isSelected = selectedEntity?.id === node.entity.id;
-      
+      const isHovered = currentHovered?.id === node.entity.id;
+      const isSelected = currentSelected?.id === node.entity.id;
+
       // Cercle du nœud
       ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius * nodeSize[0], 0, 2 * Math.PI);
+      ctx.arc(node.x, node.y, node.radius * currentNodeSize[0], 0, 2 * Math.PI);
       ctx.fillStyle = node.color;
       ctx.fill();
-      
+
       if (isHovered || isSelected) {
         ctx.strokeStyle = isSelected ? '#fbbf24' : '#60a5fa';
         ctx.lineWidth = 3;
@@ -273,17 +309,16 @@ export function GraphVisualization({
       }
 
       // Label
-      if (showLabels) {
+      if (currentShowLabels) {
         ctx.fillStyle = '#1f2937';
-        ctx.font = `${12 * nodeSize[0]}px sans-serif`;
+        ctx.font = `${12 * currentNodeSize[0]}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
-        const maxWidth = node.radius * 2.5;
-        const text = node.entity.name.length > 15 
-          ? node.entity.name.substring(0, 15) + '...' 
+
+        const text = node.entity.name.length > 15
+          ? node.entity.name.substring(0, 15) + '...'
           : node.entity.name;
-        
+
         ctx.fillText(text, node.x, node.y + node.radius + 15);
       }
     });
@@ -291,22 +326,22 @@ export function GraphVisualization({
     ctx.restore();
   };
 
-  // Animation loop
+  // Animation loop — runs once, reads from refs, no state dependencies
   useEffect(() => {
     const animate = () => {
       simulateForces();
       draw();
       animationRef.current = requestAnimationFrame(animate);
     };
-    
-    animate();
-    
+
+    animationRef.current = requestAnimationFrame(animate);
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [nodes, edges, isSimulating, zoom, pan, showLabels, showRelations, nodeSize]);
+  }, []);
 
   // Gestion des interactions
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -318,7 +353,7 @@ export function GraphVisualization({
     const y = (event.clientY - rect.top - pan.y) / zoom;
 
     // Vérifier si on a cliqué sur un nœud
-    const clickedNode = nodes.find(node => {
+    const clickedNode = nodesRef.current.find(node => {
       const dx = x - node.x;
       const dy = y - node.y;
       return Math.sqrt(dx * dx + dy * dy) <= node.radius * nodeSize[0];
@@ -340,7 +375,7 @@ export function GraphVisualization({
     const x = (event.clientX - rect.left - pan.x) / zoom;
     const y = (event.clientY - rect.top - pan.y) / zoom;
 
-    const hoveredNode = nodes.find(node => {
+    const hoveredNode = nodesRef.current.find(node => {
       const dx = x - node.x;
       const dy = y - node.y;
       return Math.sqrt(dx * dx + dy * dy) <= node.radius * nodeSize[0];
@@ -489,7 +524,7 @@ export function GraphVisualization({
               onClick={handleCanvasClick}
               onMouseMove={handleCanvasMouseMove}
             />
-            
+
             {/* Informations sur l'entité sélectionnée */}
             {selectedEntity && (
               <div className="absolute top-4 right-4 bg-white border rounded-lg p-4 shadow-lg max-w-xs">
@@ -520,7 +555,7 @@ export function GraphVisualization({
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {Object.values(EntityType).slice(0, 8).map(type => (
                   <div key={type} className="flex items-center gap-1">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: getEntityColor(type) }}
                     />
@@ -538,7 +573,7 @@ export function GraphVisualization({
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-500">{nodes.length}</p>
+              <p className="text-2xl font-bold text-blue-500">{nodeCount}</p>
               <p className="text-sm text-gray-600">Entités</p>
             </div>
           </CardContent>
@@ -546,7 +581,7 @@ export function GraphVisualization({
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-500">{edges.length}</p>
+              <p className="text-2xl font-bold text-green-500">{edgeCount}</p>
               <p className="text-sm text-gray-600">Relations</p>
             </div>
           </CardContent>
@@ -555,7 +590,7 @@ export function GraphVisualization({
           <CardContent className="p-4">
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-500">
-                {nodes.length > 0 ? Math.round(nodes.reduce((sum, n) => sum + n.entity.confidence, 0) / nodes.length * 100) : 0}%
+                {avgConfidence}%
               </p>
               <p className="text-sm text-gray-600">Confiance moyenne</p>
             </div>

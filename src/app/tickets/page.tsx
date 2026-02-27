@@ -9,84 +9,104 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Plus,
+  Search,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
   MessageSquare,
-  User,
+  User as UserIcon,
   Calendar,
   Tag,
   RefreshCw,
   Eye,
-  Edit,
-  Trash2,
-  Download,
-  TrendingUp,
-  BarChart3
+  BarChart3,
+  ArrowRight,
+  Wrench,
+  XCircle,
+  Loader2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
-interface Ticket {
-  id: string;
-  ticketNumber: string;
-  title: string;
+interface TicketData {
+  id: number;
+  titre: string | null;
   description: string;
-  status: 'new' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  category: string;
-  clientId: string;
-  clientName: string;
-  assignedTo?: string;
-  assignedToName?: string;
+  status: string;
+  priorite: string;
+  categorie: string | null;
+  type_panne: string | null;
+  equipement_type: string | null;
+  marque: string | null;
+  modele: string | null;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
-  resolvedAt?: string;
-  tags: string[];
-  attachments: number;
-  messages: number;
+  user: { id: string; name: string | null; email: string } | null;
+  assignedTo: { id: string; name: string | null; email: string } | null;
+  commentCount: number;
+  fileCount: number;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
+  'OUVERT': { label: 'Ouvert', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200', icon: AlertTriangle },
+  'EN_DIAGNOSTIC': { label: 'En diagnostic', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200', icon: Search },
+  'EN_REPARATION': { label: 'En réparation', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200', icon: Wrench },
+  'REPARÉ': { label: 'Réparé', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200', icon: CheckCircle },
+  'FERMÉ': { label: 'Fermé', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200', icon: XCircle },
+  'ANNULÉ': { label: 'Annulé', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200', icon: XCircle },
+};
+
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  'CRITIQUE': { label: 'Critique', color: 'bg-red-600 text-white' },
+  'HAUTE': { label: 'Haute', color: 'bg-orange-500 text-white' },
+  'MOYENNE': { label: 'Moyenne', color: 'bg-yellow-500 text-white' },
+  'BASSE': { label: 'Basse', color: 'bg-green-500 text-white' },
+};
+
 export default function TicketsPage() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const { data: session } = useSession();
+  const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, pages: 1 });
 
   // Formulaire de création
   const [newTicket, setNewTicket] = useState({
-    title: '',
+    titre: '',
     description: '',
-    priority: 'medium',
-    category: '',
-    clientId: '',
-    tags: ''
+    priorite: 'MOYENNE',
+    categorie: '',
+    tags: '',
   });
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [statusFilter, priorityFilter]);
 
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/tickets');
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (priorityFilter !== 'all') params.set('priorite', priorityFilter);
+      if (searchTerm) params.set('recherche', searchTerm);
+      params.set('limit', '50');
+
+      const response = await fetch(`/api/tickets?${params.toString()}`);
+      if (!response.ok) throw new Error('Erreur serveur');
       const data = await response.json();
-      
-      if (data.success) {
-        setTickets(data.data);
-      } else {
-        toast.error('Erreur lors du chargement des tickets');
-      }
+
+      setTickets(data.tickets || []);
+      setPagination(data.pagination || { total: 0, page: 1, limit: 20, pages: 1 });
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Erreur lors du chargement des tickets');
@@ -96,125 +116,118 @@ export default function TicketsPage() {
   };
 
   const createTicket = async () => {
-    if (!newTicket.title || !newTicket.description || !newTicket.category) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!newTicket.titre || !newTicket.description) {
+      toast.error('Veuillez remplir le titre et la description');
       return;
     }
 
+    setIsCreating(true);
     try {
-      const response = await fetch('/api/tickets', {
+      const formData = new FormData();
+      formData.append('description', newTicket.description);
+      // Note: l'API actuelle attend formData avec juste description
+      // On va créer via JSON pour inclure tous les champs
+
+      const response = await fetch('/api/tickets/advanced', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newTicket,
-          tags: newTicket.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+          titre: newTicket.titre,
+          description: newTicket.description,
+          priorite: newTicket.priorite,
+          categorie: newTicket.categorie || 'Général',
+          tags: newTicket.tags.split(',').map(t => t.trim()).filter(Boolean),
         }),
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Ticket créé avec succès');
-        setIsCreateDialogOpen(false);
-        setNewTicket({
-          title: '',
-          description: '',
-          priority: 'medium',
-          category: '',
-          clientId: '',
-          tags: ''
+      if (!response.ok) {
+        // Fallback : utiliser l'API standard
+        const formData = new FormData();
+        formData.append('description', `${newTicket.titre}\n\n${newTicket.description}`);
+
+        const fallbackRes = await fetch('/api/tickets', {
+          method: 'POST',
+          body: formData,
         });
-        fetchTickets();
-      } else {
-        toast.error(data.error || 'Erreur lors de la création du ticket');
+
+        if (!fallbackRes.ok) throw new Error('Échec de la création');
       }
+
+      toast.success('Ticket créé avec succès');
+      setIsCreateDialogOpen(false);
+      setNewTicket({ titre: '', description: '', priorite: 'MOYENNE', categorie: '', tags: '' });
+      fetchTickets();
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Erreur lors de la création du ticket');
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const updateTicketStatus = async (ticketId: string, newStatus: string) => {
+  const updateTicketStatus = async (ticketId: number, newStatus: string) => {
     try {
       const response = await fetch(`/api/tickets/${ticketId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Statut mis à jour');
-        fetchTickets();
-      } else {
-        toast.error('Erreur lors de la mise à jour');
-      }
+      if (!response.ok) throw new Error('Erreur serveur');
+
+      toast.success(`Statut mis à jour: ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      fetchTickets();
     } catch (error) {
       console.error('Erreur:', error);
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise à jour du statut');
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') fetchTickets();
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'bg-gray-100 text-gray-800';
-      case 'medium': return 'bg-blue-100 text-blue-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  // Stats calculées depuis les données chargées
+  const stats = {
+    total: pagination.total,
+    ouvert: tickets.filter(t => t.status === 'OUVERT').length,
+    enCours: tickets.filter(t => t.status === 'EN_DIAGNOSTIC' || t.status === 'EN_REPARATION').length,
+    resolus: tickets.filter(t => t.status === 'REPARÉ' || t.status === 'FERMÉ').length,
+    critique: tickets.filter(t => t.priorite === 'CRITIQUE').length,
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'new': return <AlertTriangle className="w-4 h-4" />;
-      case 'in_progress': return <Clock className="w-4 h-4" />;
-      case 'resolved': return <CheckCircle className="w-4 h-4" />;
-      case 'closed': return <CheckCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
-  };
-
+  // Filtrage côté client pour la recherche
   const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
-    const matchesCategory = categoryFilter === 'all' || ticket.category === categoryFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      (ticket.titre?.toLowerCase().includes(search)) ||
+      ticket.description.toLowerCase().includes(search) ||
+      (ticket.user?.name?.toLowerCase().includes(search)) ||
+      (ticket.user?.email?.toLowerCase().includes(search)) ||
+      (ticket.categorie?.toLowerCase().includes(search))
+    );
   });
 
-  const stats = {
-    total: tickets.length,
-    new: tickets.filter(t => t.status === 'new').length,
-    inProgress: tickets.filter(t => t.status === 'in_progress').length,
-    resolved: tickets.filter(t => t.status === 'resolved').length,
-    critical: tickets.filter(t => t.priority === 'critical').length
+  // Actions disponibles selon le statut
+  const getNextAction = (status: string) => {
+    switch (status) {
+      case 'OUVERT': return { label: 'Diagnostiquer', nextStatus: 'EN_DIAGNOSTIC', icon: Search };
+      case 'EN_DIAGNOSTIC': return { label: 'Réparer', nextStatus: 'EN_REPARATION', icon: Wrench };
+      case 'EN_REPARATION': return { label: 'Marquer réparé', nextStatus: 'REPARÉ', icon: CheckCircle };
+      case 'REPARÉ': return { label: 'Fermer', nextStatus: 'FERMÉ', icon: XCircle };
+      default: return null;
+    }
   };
+
+  const isAgent = session?.user?.role === 'AGENT' || session?.user?.role === 'ADMIN';
 
   if (loading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Chargement des tickets...</span>
+        <div className="flex flex-col items-center justify-center h-64 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="text-muted-foreground">Chargement des tickets...</span>
         </div>
       </div>
     );
@@ -227,7 +240,7 @@ export default function TicketsPage() {
         <div>
           <h1 className="text-3xl font-bold">Gestion des Tickets</h1>
           <p className="text-muted-foreground">
-            Gérez toutes les demandes de support
+            {pagination.total} ticket{pagination.total > 1 ? 's' : ''} au total
           </p>
         </div>
         <div className="flex gap-2">
@@ -235,6 +248,12 @@ export default function TicketsPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
+          <Link href="/tickets/create">
+            <Button variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Formulaire avancé
+            </Button>
+          </Link>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -248,11 +267,11 @@ export default function TicketsPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Titre *</Label>
+                  <Label htmlFor="titre">Titre *</Label>
                   <Input
-                    id="title"
-                    value={newTicket.title}
-                    onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
+                    id="titre"
+                    value={newTicket.titre}
+                    onChange={(e) => setNewTicket({ ...newTicket, titre: e.target.value })}
                     placeholder="Sujet du ticket"
                   />
                 </div>
@@ -261,50 +280,65 @@ export default function TicketsPage() {
                   <Textarea
                     id="description"
                     value={newTicket.description}
-                    onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
+                    onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
                     placeholder="Description détaillée du problème"
                     rows={4}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="priority">Priorité</Label>
-                    <Select value={newTicket.priority} onValueChange={(value) => setNewTicket({...newTicket, priority: value})}>
+                    <Label>Priorité</Label>
+                    <Select
+                      value={newTicket.priorite}
+                      onValueChange={(value) => setNewTicket({ ...newTicket, priorite: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="low">Basse</SelectItem>
-                        <SelectItem value="medium">Moyenne</SelectItem>
-                        <SelectItem value="high">Haute</SelectItem>
-                        <SelectItem value="critical">Critique</SelectItem>
+                        <SelectItem value="BASSE">Basse</SelectItem>
+                        <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                        <SelectItem value="HAUTE">Haute</SelectItem>
+                        <SelectItem value="CRITIQUE">Critique</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="category">Catégorie *</Label>
-                    <Input
-                      id="category"
-                      value={newTicket.category}
-                      onChange={(e) => setNewTicket({...newTicket, category: e.target.value})}
-                      placeholder="Ex: Technique, Facturation..."
-                    />
+                    <Label>Catégorie</Label>
+                    <Select
+                      value={newTicket.categorie || 'general'}
+                      onValueChange={(value) => setNewTicket({ ...newTicket, categorie: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">Général</SelectItem>
+                        <SelectItem value="Poste de travail">Poste de travail</SelectItem>
+                        <SelectItem value="Infrastructure">Infrastructure</SelectItem>
+                        <SelectItem value="Périphérique">Périphérique</SelectItem>
+                        <SelectItem value="Installation">Installation</SelectItem>
+                        <SelectItem value="Connectivité">Connectivité</SelectItem>
+                        <SelectItem value="Droits d'accès">Droits d&apos;accès</SelectItem>
+                        <SelectItem value="Téléphonie">Téléphonie</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
+                  <Label>Tags (séparés par des virgules)</Label>
                   <Input
-                    id="tags"
                     value={newTicket.tags}
-                    onChange={(e) => setNewTicket({...newTicket, tags: e.target.value})}
-                    placeholder="urgent, client-premium, technique"
+                    onChange={(e) => setNewTicket({ ...newTicket, tags: e.target.value })}
+                    placeholder="urgent, réseau, hardware"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Annuler
                   </Button>
-                  <Button onClick={createTicket}>
+                  <Button onClick={createTicket} disabled={isCreating}>
+                    {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Créer le ticket
                   </Button>
                 </div>
@@ -315,8 +349,8 @@ export default function TicketsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('all')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -325,209 +359,205 @@ export default function TicketsPage() {
             <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'OUVERT' ? 'ring-2 ring-blue-500' : ''}`} onClick={() => setStatusFilter(statusFilter === 'OUVERT' ? 'all' : 'OUVERT')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nouveaux</CardTitle>
+            <CardTitle className="text-sm font-medium">Ouverts</CardTitle>
             <AlertTriangle className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.new}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.ouvert}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(statusFilter === 'EN_DIAGNOSTIC,EN_REPARATION' ? 'all' : 'EN_DIAGNOSTIC,EN_REPARATION')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">En cours</CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+            <div className="text-2xl font-bold text-yellow-600">{stats.enCours}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(statusFilter === 'REPARÉ,FERMÉ' ? 'all' : 'REPARÉ,FERMÉ')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Résolus</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.resolus}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${stats.critique > 0 ? 'border-red-300' : ''}`} onClick={() => setPriorityFilter(priorityFilter === 'CRITIQUE' ? 'all' : 'CRITIQUE')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Critiques</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.critique}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filtres */}
       <Card>
-        <CardHeader>
-          <CardTitle>Filtres</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
-              <Label htmlFor="search">Recherche</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="search"
                   placeholder="Rechercher un ticket..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearch}
                   className="pl-10"
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="status">Statut</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="new">Nouveaux</SelectItem>
-                  <SelectItem value="in_progress">En cours</SelectItem>
-                  <SelectItem value="resolved">Résolus</SelectItem>
-                  <SelectItem value="closed">Fermés</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="priority">Priorité</Label>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="low">Basse</SelectItem>
-                  <SelectItem value="medium">Moyenne</SelectItem>
-                  <SelectItem value="high">Haute</SelectItem>
-                  <SelectItem value="critical">Critique</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="category">Catégorie</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="technique">Technique</SelectItem>
-                  <SelectItem value="facturation">Facturation</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[170px]">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="OUVERT">Ouvert</SelectItem>
+                <SelectItem value="EN_DIAGNOSTIC">En diagnostic</SelectItem>
+                <SelectItem value="EN_REPARATION">En réparation</SelectItem>
+                <SelectItem value="REPARÉ">Réparé</SelectItem>
+                <SelectItem value="FERMÉ">Fermé</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Priorité" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                <SelectItem value="CRITIQUE">Critique</SelectItem>
+                <SelectItem value="HAUTE">Haute</SelectItem>
+                <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                <SelectItem value="BASSE">Basse</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
       {/* Liste des tickets */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredTickets.length === 0 ? (
           <Card>
-            <CardContent className="text-center py-8">
+            <CardContent className="text-center py-12">
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">Aucun ticket trouvé</h3>
+              <h3 className="text-lg font-semibold mb-1">Aucun ticket trouvé</h3>
               <p className="text-muted-foreground">
-                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all'
+                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
                   ? 'Aucun ticket ne correspond aux filtres sélectionnés.'
                   : 'Aucun ticket n\'a été créé pour le moment.'}
               </p>
             </CardContent>
           </Card>
         ) : (
-          filteredTickets.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getStatusIcon(ticket.status)}
-                      <CardTitle className="text-lg">{ticket.title}</CardTitle>
-                      <Badge variant="outline">#{ticket.ticketNumber}</Badge>
+          filteredTickets.map((ticket) => {
+            const statusConf = STATUS_CONFIG[ticket.status] || { label: ticket.status, color: 'bg-gray-100 text-gray-800', icon: Clock };
+            const priorityConf = PRIORITY_CONFIG[ticket.priorite] || { label: ticket.priorite, color: 'bg-gray-500 text-white' };
+            const StatusIcon = statusConf.icon;
+            const nextAction = isAgent ? getNextAction(ticket.status) : null;
+
+            return (
+              <Card key={ticket.id} className="hover:shadow-md transition-shadow group">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Info principale */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <StatusIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <Link href={`/tickets/${ticket.id}`} className="font-semibold text-lg hover:text-blue-600 transition-colors truncate">
+                          {ticket.titre || 'Sans titre'}
+                        </Link>
+                        <Badge variant="outline" className="flex-shrink-0 text-xs font-mono">
+                          #{ticket.id}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3 ml-7">
+                        {ticket.description}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground ml-7">
+                        <div className="flex items-center gap-1">
+                          <UserIcon className="h-3.5 w-3.5" />
+                          {ticket.user?.name || ticket.user?.email || 'Inconnu'}
+                        </div>
+                        {ticket.assignedTo && (
+                          <div className="flex items-center gap-1">
+                            <ArrowRight className="h-3 w-3" />
+                            {ticket.assignedTo.name || ticket.assignedTo.email}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {new Date(ticket.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                        {ticket.commentCount > 0 && (
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            {ticket.commentCount}
+                          </div>
+                        )}
+                        {ticket.categorie && (
+                          <div className="flex items-center gap-1">
+                            <Tag className="h-3.5 w-3.5" />
+                            {ticket.categorie}
+                          </div>
+                        )}
+                        {ticket.tags?.length > 0 && ticket.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs py-0">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <CardDescription className="line-clamp-2">
-                      {ticket.description}
-                    </CardDescription>
+
+                    {/* Badges + Actions */}
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <div className="flex gap-2">
+                        <Badge className={priorityConf.color}>{priorityConf.label}</Badge>
+                        <Badge className={statusConf.color}>{statusConf.label}</Badge>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link href={`/tickets/${ticket.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-1" />
+                            Voir
+                          </Button>
+                        </Link>
+                        {nextAction && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              updateTicketStatus(ticket.id, nextAction.nextStatus);
+                            }}
+                          >
+                            <nextAction.icon className="h-4 w-4 mr-1" />
+                            {nextAction.label}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Badge className={getStatusColor(ticket.status)}>
-                      {ticket.status.replace('_', ' ')}
-                    </Badge>
-                    <Badge className={getPriorityColor(ticket.priority)}>
-                      {ticket.priority}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      {ticket.clientName}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(ticket.createdAt).toLocaleDateString('fr-FR')}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" />
-                      {ticket.messages}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Tag className="h-4 w-4" />
-                      {ticket.category}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setIsViewDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {ticket.status === 'new' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateTicketStatus(ticket.id, 'in_progress')}
-                      >
-                        <Clock className="h-4 w-4 mr-1" />
-                        En cours
-                      </Button>
-                    )}
-                    {ticket.status === 'in_progress' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateTicketStatus(ticket.id, 'resolved')}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Résoudre
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
+
+      {/* Pagination info */}
+      {pagination.total > pagination.limit && (
+        <div className="flex items-center justify-center text-sm text-muted-foreground">
+          Affichage de {filteredTickets.length} sur {pagination.total} tickets
+        </div>
+      )}
     </div>
   );
 }

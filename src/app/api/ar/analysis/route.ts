@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
 
     try {
       // Utiliser Z-AI pour analyser l'image
+      // Use dynamic import for consistency and to avoid build-time issues
+      const ZAI = (await import('z-ai-web-dev-sdk')).default;
       const zai = await ZAI.create();
 
       const analysisPrompt = `
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
                   url: dataUrl
                 }
               }
-            ]
+            ] as any
           }
         ],
         max_tokens: 1000,
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
       });
 
       const analysisText = completion.choices[0]?.message?.content;
-      
+
       if (!analysisText) {
         throw new Error('Pas de réponse de l\'IA');
       }
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     } catch (aiError) {
       console.error('Erreur lors de l\'analyse IA:', aiError);
-      
+
       // Fallback: analyse basique sans IA
       const fallbackAnalysis = {
         deviceType: 'Équipement électronique',

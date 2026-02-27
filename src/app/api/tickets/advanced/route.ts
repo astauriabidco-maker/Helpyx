@@ -1,104 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== ADVANCED TICKET API - DÉBUT TRAITEMENT ===');
-    
-    // Récupérer les informations pour le débogage
-    const host = request.headers.get('host') || '';
-    const referer = request.headers.get('referer') || '';
-    const vercelEnv = process.env.VERCEL_ENV || '';
-    const vercelUrl = process.env.VERCEL_URL || '';
-    const nodeEnv = process.env.NODE_ENV || '';
-    
-    console.log('Host:', host);
-    console.log('Referer:', referer);
-    console.log('VERCEL_ENV:', vercelEnv);
-    console.log('VERCEL_URL:', vercelUrl);
-    console.log('NODE_ENV:', nodeEnv);
-    
-    // FORCER LE BYPASS POUR TOUT PENDANT LE DÉVELOPPEMENT
-    const BYPASS_AUTH = true; // FORCÉ À TRUE
-    
-    console.log('=== ADVANCED TICKET API - BYPASS AUTH ===');
-    console.log('BYPASS_AUTH:', BYPASS_AUTH);
-    
-    // En mode bypass, créer directement un utilisateur sans authentification
-    let user = null;
-    
-    if (BYPASS_AUTH) {
-      console.log('🚀 Preview mode - bypassing authentication');
-      
-      // Créer ou récupérer un utilisateur de test pour preview
-      user = await db.user.findFirst({
-        where: { email: 'preview-user@example.com' }
-      });
-      
-      if (!user) {
-        console.log('Creating preview user...');
-        user = await db.user.create({
-          data: {
-            email: 'preview-user@example.com',
-            name: 'Preview User',
-            role: 'CLIENT'
-          }
-        });
-        console.log('✅ Preview user created:', user.id);
-      }
-    } else {
-      // Mode normal - essayer l'authentification
-      try {
-        let session = await getServerSession();
-        
-        if (session?.user?.email) {
-          console.log('Session NextAuth trouvée:', session.user.email);
-          user = await db.user.findUnique({
-            where: { email: session.user.email }
-          });
-        }
-      } catch (authError) {
-        console.log('Erreur NextAuth, utilisation fallback:', authError.message);
-      }
-      
-      // Fallback: utilisateur par défaut
-      if (!user) {
-        user = await db.user.findFirst({
-          where: { role: 'CLIENT' }
-        });
-        
-        if (!user) {
-          user = await db.user.create({
-            data: {
-              email: 'test-advanced@example.com',
-              name: 'Utilisateur Advanced Test',
-              role: 'CLIENT'
-            }
-          });
-        }
-      }
+    // Authentification obligatoire
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      );
     }
 
+    const user = await db.user.findUnique({
+      where: { id: session.user.id }
+    });
+
     if (!user) {
-      console.error('❌ Erreur: Utilisateur non trouvé');
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
 
-    console.log('✅ Utilisateur trouvé:', user.id, user.name);
-
     const formData = await request.formData();
-    console.log('FormData reçu, nombre de champs:', formData.keys.length);
-    
+
     // Gérer les tableaux de symptômes et messages d'erreur
     const symptomes = formData.getAll('symptomes').filter(s => s && s !== '');
     const messagesErreur = formData.getAll('messages_erreur').filter(m => m && m !== '');
     const logicielsConcerne = formData.getAll('logiciels_concernes').filter(l => l && l !== '');
-    
-    console.log('Symptômes:', symptomes);
-    console.log('Messages erreur:', messagesErreur);
-    console.log('Logiciels concernés:', logicielsConcerne);
-    
+
     // Extraire les données du formulaire
     const ticketData = {
       titre: formData.get('titre') as string,
@@ -146,35 +77,28 @@ export async function POST(request: NextRequest) {
 
     // Validation des champs requis
     const requiredFields = ['titre', 'description', 'categorie', 'priorite'];
-    console.log('Validation des champs requis...');
-    
+
     for (const field of requiredFields) {
       const value = ticketData[field as keyof typeof ticketData];
-      console.log(`Champ ${field}:`, value);
       if (!value) {
-        console.error(`Erreur: Le champ ${field} est requis`);
         return NextResponse.json({ error: `Le champ ${field} est requis` }, { status: 400 });
       }
     }
 
-    console.log('Validation réussie, création du ticket...');
-
     // Créer le ticket dans la base de données
     const ticket = await db.ticket.create({
-      data: ticketData
+      data: ticketData as any
     });
-
-    console.log('Ticket créé avec succès:', ticket.id);
 
     // Gérer les fichiers joints
     const fichiers = formData.getAll('fichiers') as File[];
     const screenshots = formData.getAll('screenshots') as File[];
-    
+
     // TODO: Implémenter le stockage des fichiers
     // Pour l'instant, nous allons juste enregistrer les noms de fichiers
-    
-    const fichiersInfo = [];
-    const screenshotsInfo = [];
+
+    const fichiersInfo: any[] = [];
+    const screenshotsInfo: any[] = [];
 
     for (const file of [...fichiers, ...screenshots]) {
       if (file instanceof File) {
@@ -196,13 +120,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Envoyer une notification email (simulation)
-    try {
-      // TODO: Implémenter l'envoi d'email
-      console.log('Email de notification envoyé pour le ticket:', ticket.id);
-    } catch (emailError) {
-      console.error('Erreur lors de l\'envoi de l\'email:', emailError);
-    }
+    // TODO: Implémenter l'envoi de notification email
 
     return NextResponse.json({
       success: true,
@@ -214,35 +132,30 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error) {
-    console.error('Erreur détaillée lors de la création du ticket avancé:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      cause: error.cause
-    });
-    
+  } catch (error: any) {
+    console.error('Erreur création ticket avancé:', error instanceof Error ? (error as any).message : 'Unknown error');
+
     // Si c'est une erreur de base de données
-    if (error.message.includes('Unique constraint')) {
+    if ((error as any).message.includes('Unique constraint')) {
       return NextResponse.json(
         { error: 'Un ticket avec ces informations existe déjà' },
         { status: 409 }
       );
     }
-    
+
     // Si c'est une erreur de validation
-    if (error.message.includes('Invalid')) {
+    if ((error as any).message.includes('Invalid')) {
       return NextResponse.json(
-        { error: 'Données invalides: ' + error.message },
+        { error: 'Données invalides: ' + (error as any).message },
         { status: 400 }
       );
     }
-    
+
     // Erreur par défaut
     return NextResponse.json(
-      { 
+      {
         error: 'Erreur serveur lors de la création du ticket',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as any).message : undefined
       },
       { status: 500 }
     );

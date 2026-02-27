@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que la session existe
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer la session
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
@@ -133,9 +133,9 @@ export async function GET(request: NextRequest) {
 
 function analyzeMotionData(motionData: any): any {
   const analysis = {
-    movementPatterns: [],
-    interactions: [],
-    gestures: [],
+    movementPatterns: [] as any[],
+    interactions: [] as any[],
+    gestures: [] as any[],
     quality: {
       tracking: 'good',
       latency: 'low',
@@ -176,7 +176,7 @@ function analyzeMotionData(motionData: any): any {
   // Analyser les gestes
   if (motionData.gestureData) {
     Object.entries(motionData.gestureData).forEach(([gesture, confidence]) => {
-      if (confidence > 0.7) {
+      if ((confidence as number) > 0.7) {
         analysis.gestures.push({
           type: gesture,
           confidence,
@@ -217,7 +217,7 @@ async function updateConnectionQuality(sessionId: string, motionData: any): Prom
     qualityScore = Math.max(0, Math.min(100, qualityScore));
 
     // Mettre à jour la session avec les métriques de qualité
-    await db.aRVRSessions.update({
+    await db.aRVRSession.update({
       where: { id: sessionId },
       data: {
         lastActivity: new Date(),

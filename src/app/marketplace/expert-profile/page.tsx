@@ -71,7 +71,7 @@ export default function ExpertProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [existingProfile, setExistingProfile] = useState<ExpertProfile | null>(null);
+  const [existingProfile, setExistingProfile] = useState<any | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [profile, setProfile] = useState<ExpertProfile>({
@@ -212,7 +212,7 @@ export default function ExpertProfilePage() {
   const updateSkill = (index: number, field: keyof Skill, value: any) => {
     setProfile(prev => ({
       ...prev,
-      skills: prev.skills.map((skill, i) => 
+      skills: prev.skills.map((skill, i) =>
         i === index ? { ...skill, [field]: value } : skill
       )
     }));
@@ -235,7 +235,7 @@ export default function ExpertProfilePage() {
   const updateExpertise = (index: number, field: keyof Expertise, value: any) => {
     setProfile(prev => ({
       ...prev,
-      expertise: prev.expertise.map((exp, i) => 
+      expertise: prev.expertise.map((exp, i) =>
         i === index ? { ...exp, [field]: value } : exp
       )
     }));
@@ -265,8 +265,8 @@ export default function ExpertProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header companyName="TechSupport" />
-      
+      <Header companyName="Helpyx" />
+
       <main className="container px-4 py-8 md:px-8">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
@@ -275,7 +275,7 @@ export default function ExpertProfilePage() {
               {existingProfile ? 'Mon Profil d\'Expert' : 'Devenir Expert'}
             </h1>
             <p className="text-xl text-muted-foreground">
-              {existingProfile 
+              {existingProfile
                 ? 'Gérez votre profil d\'expert et vos services'
                 : 'Créez votre profil d\'expert pour commencer à recevoir des missions'
               }
@@ -301,7 +301,7 @@ export default function ExpertProfilePage() {
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
                   <Avatar className="w-16 h-16">
-                    <AvatarImage src={existingProfile.profile.avatar} alt={session?.user?.name} />
+                    <AvatarImage src={existingProfile.profile.avatar} alt={session?.user?.name || undefined} />
                     <AvatarFallback>
                       {session?.user?.name?.charAt(0)}
                     </AvatarFallback>

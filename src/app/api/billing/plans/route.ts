@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Formater les données
-    const formattedPlans = plans.map(plan => ({
+    const formattedPlans = plans.map((plan: any) => ({
       id: plan.id,
       name: plan.nom,
       slug: plan.slug,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       maxTickets: plan.maxTickets,
       maxInventory: plan.maxInventory,
       supportLevel: plan.supportLevel,
-      popular: plan.ordre === 1, // Supposer que le deuxième plan est populaire
+      popular: plan.ordre === 1,
       status: plan.statut.toLowerCase(),
       subscriptions: plan.subscriptions || 0,
       revenue: plan.revenue || 0

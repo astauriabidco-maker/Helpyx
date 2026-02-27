@@ -11,11 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
+import {
   // Icons
-  Radar, 
-  Wifi, 
-  Usb, 
+  Radar,
+  Wifi,
+  Usb,
   Plus,
   Search,
   Filter,
@@ -173,7 +173,7 @@ export function SmartInventoryDiscovery() {
 
     try {
       const devicesToAdd = devices.filter(device => selectedDevices.includes(device.id));
-      
+
       // Pour chaque device, créer un article dans l'inventaire
       for (const device of devicesToAdd) {
         await fetch('/api/inventory', {
@@ -251,7 +251,7 @@ export function SmartInventoryDiscovery() {
 
     const baseCost = baseCosts[device.type] || 100;
     const multiplier = manufacturerMultiplier[device.manufacturer || ''] || 1.0;
-    
+
     return Math.round(baseCost * multiplier);
   };
 
@@ -291,13 +291,12 @@ export function SmartInventoryDiscovery() {
 
     return (
       <Badge variant={variants[device.statut]} className="flex items-center gap-1">
-        <div className={`w-2 h-2 rounded-full ${
-          device.statut === 'online' || device.statut === 'connected' 
-            ? 'bg-green-500' 
+        <div className={`w-2 h-2 rounded-full ${device.statut === 'online' || device.statut === 'connected'
+            ? 'bg-green-500'
             : device.statut === 'offline' || device.statut === 'disconnected'
-            ? 'bg-red-500'
-            : 'bg-gray-500'
-        }`} />
+              ? 'bg-red-500'
+              : 'bg-gray-500'
+          }`} />
         {labels[device.statut]}
       </Badge>
     );
@@ -354,10 +353,9 @@ export function SmartInventoryDiscovery() {
             <CardContent className="space-y-6">
               {/* Type de découverte */}
               <div className="grid md:grid-cols-3 gap-4">
-                <Card 
-                  className={`cursor-pointer transition-all ${
-                    discoveryType === 'network' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
+                <Card
+                  className={`cursor-pointer transition-all ${discoveryType === 'network' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setDiscoveryType('network')}
                 >
                   <CardContent className="p-4 text-center">
@@ -367,10 +365,9 @@ export function SmartInventoryDiscovery() {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className={`cursor-pointer transition-all ${
-                    discoveryType === 'bluetooth' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
+                <Card
+                  className={`cursor-pointer transition-all ${discoveryType === 'bluetooth' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setDiscoveryType('bluetooth')}
                 >
                   <CardContent className="p-4 text-center">
@@ -380,10 +377,9 @@ export function SmartInventoryDiscovery() {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className={`cursor-pointer transition-all ${
-                    discoveryType === 'usb' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
+                <Card
+                  className={`cursor-pointer transition-all ${discoveryType === 'usb' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setDiscoveryType('usb')}
                 >
                   <CardContent className="p-4 text-center">
@@ -442,7 +438,7 @@ export function SmartInventoryDiscovery() {
                         </SelectTrigger>
                         <SelectContent>
                           {manufacturers.map(manufacturer => (
-                            <SelectItem key={manufacturer} value={manufacturer}>{manufacturer}</SelectItem>
+                            <SelectItem key={manufacturer} value={manufacturer || ''}>{manufacturer}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -466,8 +462,8 @@ export function SmartInventoryDiscovery() {
 
               {/* Bouton de lancement */}
               <div className="flex gap-4">
-                <Button 
-                  onClick={startDiscovery} 
+                <Button
+                  onClick={startDiscovery}
                   disabled={scanning}
                   className="flex-1"
                 >
@@ -796,7 +792,7 @@ export function SmartInventoryDiscovery() {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4">
-                <Button 
+                <Button
                   onClick={() => {
                     setSelectedDevices(prev => [...prev, showDeviceDetails.id]);
                     setShowDeviceDetails(null);

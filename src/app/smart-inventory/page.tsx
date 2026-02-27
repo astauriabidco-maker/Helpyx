@@ -16,7 +16,7 @@ export default function SmartInventoryPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/auth/signin');
       return;
@@ -52,8 +52,8 @@ export default function SmartInventoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header companyName="TechSupport" />
-      
+      <Header companyName="Helpyx" />
+
       <main className="container px-4 py-8 md:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}

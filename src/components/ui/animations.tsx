@@ -111,9 +111,9 @@ export const Counter = ({ end, duration = 2, suffix = '', prefix = '', className
     const animate = (currentTime: number) => {
       if (!startTime) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / (duration * 1000), 1);
-      
+
       setCount(Math.floor(progress * end));
-      
+
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
       }
@@ -274,9 +274,9 @@ export const AnimatedCard = ({ children, className = '' }: {
   className?: string;
 }) => (
   <motion.div
-    whileHover={{ 
-      scale: 1.02, 
-      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" 
+    whileHover={{
+      scale: 1.02,
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
     }}
     transition={{ type: "spring", stiffness: 300, damping: 30 }}
     className={className}
@@ -298,24 +298,8 @@ export const AnimatedButton = ({ children, className = '', ...props }: any) => (
   </motion.button>
 );
 
-// Export all animations
-export {
-  FadeIn,
-  SlideUp,
-  ScaleIn,
-  StaggerContainer,
-  StaggerItem,
-  Counter,
-  Typewriter,
-  Pulse,
-  Floating,
-  Shimmer,
-  useScrollAnimation,
-  ToastAnimation,
-  GradientBackground,
-  AnimatedCard,
-  AnimatedButton
-};
+
+
 
 const animations = {
   FadeIn,

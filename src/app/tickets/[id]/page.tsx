@@ -1,78 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Clock, 
-  User, 
-  Calendar, 
-  MapPin, 
-  Monitor, 
+import {
+  ArrowLeft,
+  Clock,
   AlertTriangle,
   CheckCircle,
   MessageSquare,
-  Paperclip,
-  Brain,
-  Lightbulb,
-  Activity,
-  Target,
-  Zap,
-  Eye,
-  Edit,
-  Save,
-  RefreshCw,
-  Download,
-  Share2,
-  ThumbsUp,
-  ThumbsDown,
-  Info,
-  Settings,
-  BarChart3,
+  User as UserIcon,
+  Calendar,
+  Tag,
+  Wrench,
+  XCircle,
+  Send,
+  Search,
+  Loader2,
+  Shield,
+  Monitor,
+  Cpu,
+  HardDrive,
   Network,
-  Search
+  MapPin,
+  Phone,
+  Mail,
+  Lock,
+  RefreshCw,
 } from 'lucide-react';
-import { KnowledgeGraphIntegration } from '@/components/knowledge-graph-integration';
-import { useKnowledgeGraph } from '@/hooks/use-knowledge-graph';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Ticket {
   id: number;
-  titre: string;
+  titre: string | null;
   description: string;
   status: string;
   priorite: string;
-  categorie: string;
-  type_panne: string;
-  equipement_type: string;
-  marque: string;
-  modele: string;
-  numero_serie: string;
-  systeme_exploitation: string;
-  site: string;
-  batiment: string;
-  etage: string;
-  bureau: string;
-  telephone_contact: string;
-  email_contact: string;
-  symptomes: string[];
-  messages_erreur: string[];
-  solutions_testees: string;
-  impact_travail: string;
-  utilisateurs_affectes: string;
-  date_limite: string;
+  categorie: string | null;
+  type_panne: string | null;
+  equipement_type: string | null;
+  marque: string | null;
+  modele: string | null;
+  numero_serie: string | null;
+  systeme_exploitation: string | null;
+  ram: string | null;
+  processeur: string | null;
+  stockage: string | null;
+  reseau: string | null;
+  site: string | null;
+  batiment: string | null;
+  etage: string | null;
+  bureau: string | null;
+  telephone_contact: string | null;
+  email_contact: string | null;
+  symptomes: string | null;
+  messages_erreur: string | null;
+  solutions_testees: string | null;
+  impact_travail: string | null;
+  utilisateurs_affectes: string | null;
+  tags: string | null;
+  garantie: boolean;
+  assignedToId: string | null;
   createdAt: string;
   updatedAt: string;
-  assignedTo?: {
-    name: string;
-    email: string;
-  };
+  actualResolutionTime: string | null;
+  user: { id: string; name: string | null; email: string };
+  assignedTo: { id: string; name: string | null; email: string } | null;
   comments: Comment[];
   files: TicketFile[];
 }
@@ -81,12 +81,8 @@ interface Comment {
   id: string;
   content: string;
   type: string;
-  userId: string;
-  user: {
-    name: string;
-    email: string;
-  };
   createdAt: string;
+  user: { id: string; name: string | null; role: string };
 }
 
 interface TicketFile {
@@ -94,620 +90,640 @@ interface TicketFile {
   nom: string;
   taille: number;
   type: string;
-  chemin: string;
 }
+
+interface Agent {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  'OUVERT': { label: 'Ouvert', color: 'bg-blue-100 text-blue-800', bgColor: 'bg-blue-500' },
+  'EN_DIAGNOSTIC': { label: 'En diagnostic', color: 'bg-yellow-100 text-yellow-800', bgColor: 'bg-yellow-500' },
+  'EN_REPARATION': { label: 'En réparation', color: 'bg-orange-100 text-orange-800', bgColor: 'bg-orange-500' },
+  'REPARÉ': { label: 'Réparé', color: 'bg-green-100 text-green-800', bgColor: 'bg-green-500' },
+  'FERMÉ': { label: 'Fermé', color: 'bg-gray-100 text-gray-800', bgColor: 'bg-gray-500' },
+  'ANNULÉ': { label: 'Annulé', color: 'bg-red-100 text-red-800', bgColor: 'bg-red-500' },
+};
+
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  'CRITIQUE': { label: 'Critique', color: 'bg-red-600 text-white' },
+  'HAUTE': { label: 'Haute', color: 'bg-orange-500 text-white' },
+  'MOYENNE': { label: 'Moyenne', color: 'bg-yellow-500 text-white' },
+  'BASSE': { label: 'Basse', color: 'bg-green-500 text-white' },
+};
+
+const STATUS_FLOW = ['OUVERT', 'EN_DIAGNOSTIC', 'EN_REPARATION', 'REPARÉ', 'FERMÉ'];
 
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [newComment, setNewComment] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [insights, setInsights] = useState<string[]>([]);
 
-  const { search, searchResults, isSearching } = useKnowledgeGraph();
+  // Commentaires
+  const [newComment, setNewComment] = useState('');
+  const [commentType, setCommentType] = useState<'PUBLIC' | 'INTERNE'>('PUBLIC');
+  const [isSendingComment, setIsSendingComment] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  // Agents pour assignation
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const isAgent = session?.user?.role === 'AGENT' || session?.user?.role === 'ADMIN';
+  const ticketId = params.id as string;
 
   useEffect(() => {
-    if (params.id) {
-      loadTicket(params.id as string);
+    if (ticketId) {
+      loadTicket();
+      if (isAgent) loadAgents();
     }
-  }, [params.id]);
+  }, [ticketId]);
 
-  const loadTicket = async (ticketId: string) => {
+  const loadTicket = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      // Simuler le chargement du ticket
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Données de démonstration
-      const mockTicket: Ticket = {
-        id: parseInt(ticketId),
-        titre: 'BSOD sur Dell Latitude - Windows 11',
-        description: 'Lordinateur Dell Latitude 5420 présente des écrans bleus intermittents depuis la mise à jour vers Windows 11. Les erreurs surviennent principalement lors de lutilisation dapplications graphiques intensives.',
-        status: 'fermé',
-        priorite: 'HAUTE',
-        categorie: 'Matériel',
-        type_panne: 'HARDWARE',
-        equipement_type: 'Laptop',
-        marque: 'Dell',
-        modele: 'Latitude 5420',
-        numero_serie: 'DL5420-2023-0847',
-        systeme_exploitation: 'Windows 11',
-        site: 'Siège Social',
-        batiment: 'A',
-        etage: '3',
-        bureau: '301',
-        telephone_contact: '+33 1 23 45 67 89',
-        email_contact: 'jean.dupont@entreprise.com',
-        symptomes: ['BSOD intermittent', 'Lenteur au démarrage', 'Crash applications graphiques'],
-        messages_erreur: ['0x000000EF', '0x0000003B', 'IRQL_NOT_LESS_OR_EQUAL'],
-        solutions_testees: 'Redémarrage, mise à jour Windows, scan antivirus',
-        impact_travail: 'Perte de productivité importante, impossible de travailler sur les projets graphiques',
-        utilisateurs_affectes: '1 utilisateur principal',
-        date_limite: '2024-01-15',
-        createdAt: '2024-01-10T09:30:00Z',
-        updatedAt: '2024-01-12T14:20:00Z',
-        assignedTo: {
-          name: 'Marie Tech',
-          email: 'marie.tech@entreprise.com'
-        },
-        comments: [
-          {
-            id: '1',
-            content: 'Ticket reçu. Diagnostic en cours...',
-            type: 'PUBLIC',
-            userId: '1',
-            user: { name: 'Marie Tech', email: 'marie.tech@entreprise.com' },
-            createdAt: '2024-01-10T10:00:00Z'
-          },
-          {
-            id: '2',
-            content: 'Problème identifié : conflit de pilotes graphiques. Solution proposée.',
-            type: 'PUBLIC',
-            userId: '1',
-            user: { name: 'Marie Tech', email: 'marie.tech@entreprise.com' },
-            createdAt: '2024-01-11T15:30:00Z'
-          }
-        ],
-        files: [
-          {
-            id: 1,
-            nom: 'screenshot_bsod.png',
-            taille: 2048576,
-            type: 'image/png',
-            chemin: '/files/tickets/1/screenshot_bsod.png'
-          }
-        ]
-      };
-
-      setTicket(mockTicket);
-    } catch (err) {
-      setError('Erreur lors du chargement du ticket');
-      console.error('Error loading ticket:', err);
+      const res = await fetch(`/api/tickets/${ticketId}`);
+      if (!res.ok) {
+        if (res.status === 404) throw new Error('Ticket non trouvé');
+        throw new Error('Erreur serveur');
+      }
+      const data = await res.json();
+      setTicket(data);
+    } catch (err: any) {
+      setError(err.message || 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'OUVERT': return 'bg-blue-100 text-blue-800';
-      case 'EN_DIAGNOSTIC': return 'bg-yellow-100 text-yellow-800';
-      case 'EN_REPARATION': return 'bg-orange-100 text-orange-800';
-      case 'REPARÉ': return 'bg-green-100 text-green-800';
-      case 'FERMÉ': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'BASSE': return 'bg-green-100 text-green-800';
-      case 'MOYENNE': return 'bg-yellow-100 text-yellow-800';
-      case 'HAUTE': return 'bg-orange-100 text-orange-800';
-      case 'CRITIQUE': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleKnowledgeSearch = async () => {
-    if (!ticket) return;
-    
-    const searchQuery = `${ticket.marque} ${ticket.modele} ${ticket.systeme_exploitation} ${ticket.symptomes.join(' ')}`;
+  const loadAgents = async () => {
     try {
-      const results = await search({
-        query: searchQuery,
-        context: {
-          brand: ticket.marque,
-          model: ticket.modele,
-          os: ticket.systeme_exploitation,
-          errorType: ticket.type_panne
-        },
-        semantic: true
-      });
-      console.log('Knowledge Graph Results:', results);
-    } catch (err) {
-      console.error('Knowledge search error:', err);
+      const res = await fetch('/api/admin/users?role=AGENT');
+      if (res.ok) {
+        const data = await res.json();
+        setAgents(data.users || data || []);
+      }
+    } catch {
+      // Silently fail - optional feature
     }
   };
 
-  const handleInsightGenerated = (generatedInsights: string[]) => {
-    setInsights(generatedInsights);
+  const updateStatus = async (newStatus: string) => {
+    if (!ticket) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Erreur de mise à jour');
+      toast.success(`Statut mis à jour: ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      loadTicket();
+    } catch {
+      toast.error('Erreur lors de la mise à jour du statut');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const assignTicket = async (agentId: string) => {
+    if (!ticket) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedToId: agentId }),
+      });
+      if (!res.ok) throw new Error('Erreur d\'assignation');
+      toast.success('Ticket assigné');
+      loadTicket();
+    } catch {
+      toast.error('Erreur lors de l\'assignation');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const sendComment = async () => {
+    if (!newComment.trim() || !ticket || !session?.user) return;
+    setIsSendingComment(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': session.user.id,
+          'x-user-role': session.user.role,
+        },
+        body: JSON.stringify({
+          content: newComment.trim(),
+          type: commentType,
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur d\'envoi');
+      toast.success('Commentaire ajouté');
+      setNewComment('');
+      loadTicket();
+      // Scroll to bottom
+      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
+    } catch {
+      toast.error('Erreur lors de l\'envoi du commentaire');
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const parseTags = (tags: string | null) => {
+    if (!tags) return [];
+    try { return JSON.parse(tags); } catch { return []; }
+  };
+
+  const parseJsonArray = (json: string | null) => {
+    if (!json) return [];
+    try { return JSON.parse(json); } catch { return []; }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-lg">Chargement du ticket...</span>
-          </div>
-        </div>
+      <div className="container mx-auto p-6 flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <span className="ml-3 text-muted-foreground">Chargement du ticket...</span>
       </div>
     );
   }
 
   if (error || !ticket) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error || 'Ticket non trouvé'}</AlertDescription>
-          </Alert>
-        </div>
+      <div className="container mx-auto p-6">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-8 text-center">
+            <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">{error || 'Ticket introuvable'}</h2>
+            <Link href="/tickets">
+              <Button className="mt-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour aux tickets
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const statusConf = STATUS_CONFIG[ticket.status] || { label: ticket.status, color: 'bg-gray-100', bgColor: 'bg-gray-500' };
+  const priorityConf = PRIORITY_CONFIG[ticket.priorite] || { label: ticket.priorite, color: 'bg-gray-500 text-white' };
+  const tags = parseTags(ticket.tags);
+  const currentStatusIndex = STATUS_FLOW.indexOf(ticket.status);
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => router.back()}>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/tickets">
+            <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">#{ticket.id} - {ticket.titre}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className={getStatusColor(ticket.status)}>
-                  {ticket.status}
-                </Badge>
-                <Badge className={getPriorityColor(ticket.priorite)}>
-                  {ticket.priorite}
-                </Badge>
-                <Badge variant="outline">{ticket.categorie}</Badge>
-              </div>
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{ticket.titre || 'Sans titre'}</h1>
+              <Badge variant="outline" className="font-mono text-sm">#{ticket.id}</Badge>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleKnowledgeSearch} disabled={isSearching}>
-              <Search className="h-4 w-4 mr-2" />
-              {isSearching ? 'Recherche...' : 'Knowledge Graph'}
-            </Button>
-            <Button variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              Partager
-            </Button>
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
-            {isEditing ? (
-              <Button onClick={() => setIsEditing(false)}>
-                <Save className="h-4 w-4 mr-2" />
-                Sauvegarder
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </Button>
-            )}
+            <p className="text-sm text-muted-foreground mt-1">
+              Créé le {formatDate(ticket.createdAt)} par {ticket.user?.name || ticket.user?.email}
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Badge className={priorityConf.color} >{priorityConf.label}</Badge>
+          <Badge className={statusConf.color}>{statusConf.label}</Badge>
+        </div>
+      </div>
 
-        {/* Knowledge Graph Integration */}
-        <KnowledgeGraphIntegration
-          ticketId={ticket.id.toString()}
-          ticketDescription={ticket.description}
-          ticketStatus={ticket.status}
-          onInsightGenerated={handleInsightGenerated}
-        />
+      {/* Workflow Progress */}
+      {isAgent && ticket.status !== 'FERMÉ' && ticket.status !== 'ANNULÉ' && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              {STATUS_FLOW.map((step, index) => {
+                const stepConf = STATUS_CONFIG[step];
+                const isActive = step === ticket.status;
+                const isPast = index < currentStatusIndex;
+                const isFuture = index > currentStatusIndex;
 
-        {/* Insights Generated */}
-        {insights.length > 0 && (
-          <Card className="border-purple-200 bg-purple-50">
+                return (
+                  <div key={step} className="flex items-center flex-1">
+                    <Button
+                      variant={isActive ? "default" : isPast ? "secondary" : "outline"}
+                      size="sm"
+                      className={`flex-1 text-xs ${isActive ? '' : isPast ? 'opacity-70' : 'opacity-40'} ${isFuture && index === currentStatusIndex + 1 ? 'opacity-80 hover:opacity-100' : ''}`}
+                      disabled={isUpdating || (!isFuture || index > currentStatusIndex + 1)}
+                      onClick={() => {
+                        if (isFuture && index === currentStatusIndex + 1) {
+                          updateStatus(step);
+                        }
+                      }}
+                    >
+                      {isPast ? <CheckCircle className="h-3 w-3 mr-1" /> : null}
+                      {stepConf.label}
+                    </Button>
+                    {index < STATUS_FLOW.length - 1 && (
+                      <div className={`w-6 h-0.5 mx-1 ${isPast ? 'bg-green-400' : 'bg-gray-200'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Colonne principale */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Description */}
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-purple-700">
-                <Lightbulb className="h-5 w-5" />
-                Insights du Knowledge Graph
-              </CardTitle>
+              <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {insights.map((insight, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <Brain className="h-4 w-4 text-purple-500 mt-0.5" />
-                    <span className="text-sm text-purple-700">{insight}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="details">Détails techniques</TabsTrigger>
-            <TabsTrigger value="knowledge">Knowledge Graph</TabsTrigger>
-            <TabsTrigger value="comments">Commentaires</TabsTrigger>
-            <TabsTrigger value="files">Fichiers</TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Info className="h-5 w-5" />
-                    Informations générales
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Créé le</label>
-                      <p className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(ticket.createdAt).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Mis à jour</label>
-                      <p className="flex items-center gap-1">
-                        <RefreshCw className="h-4 w-4" />
-                        {new Date(ticket.updatedAt).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Assigné à</label>
-                      <p className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {ticket.assignedTo?.name || 'Non assigné'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Date limite</label>
-                      <p className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {new Date(ticket.date_limite).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Localisation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p><strong>Site:</strong> {ticket.site}</p>
-                    <p><strong>Bâtiment:</strong> {ticket.batiment}</p>
-                    <p><strong>Étage:</strong> {ticket.etage}</p>
-                    <p><strong>Bureau:</strong> {ticket.bureau}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{ticket.description}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Impact
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Impact sur le travail</label>
-                    <p>{ticket.impact_travail}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Utilisateurs affectés</label>
-                    <p>{ticket.utilisateurs_affectes}</p>
-                  </div>
+              {ticket.solutions_testees && (
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">Solutions déjà testées :</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">{ticket.solutions_testees}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              )}
 
-          {/* Technical Details Tab */}
-          <TabsContent value="details" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Monitor className="h-5 w-5" />
-                    Équipement
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Type</label>
-                    <p>{ticket.equipement_type}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Marque</label>
-                    <p>{ticket.marque}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Modèle</label>
-                    <p>{ticket.modele}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Numéro de série</label>
-                    <p>{ticket.numero_serie}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Système d'exploitation</label>
-                    <p>{ticket.systeme_exploitation}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              {ticket.impact_travail && (
+                <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">Impact :</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">{ticket.impact_travail}</p>
+                  {ticket.utilisateurs_affectes && (
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">Utilisateurs affectés : {ticket.utilisateurs_affectes}</p>
+                  )}
+                </div>
+              )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Diagnostic
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Type de panne</label>
-                    <p>{ticket.type_panne}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Symptômes</label>
-                    <div className="flex flex-wrap gap-1">
-                      {ticket.symptomes.map((symptome, index) => (
-                        <Badge key={index} variant="secondary">{symptome}</Badge>
-                      ))}
+              {/* Symptômes & erreurs */}
+              {(ticket.symptomes || ticket.messages_erreur) && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ticket.symptomes && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">SYMPTÔMES</p>
+                      <div className="flex flex-wrap gap-1">
+                        {parseJsonArray(ticket.symptomes).map((s: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Messages d'erreur</label>
-                    <div className="flex flex-wrap gap-1">
-                      {ticket.messages_erreur.map((erreur, index) => (
-                        <Badge key={index} variant="destructive">{erreur}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Solutions testées</label>
-                    <p>{ticket.solutions_testees}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Knowledge Graph Tab */}
-          <TabsContent value="knowledge" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Recherche Contextuelle
-                </CardTitle>
-                <CardDescription>
-                  Recherchez des informations similaires dans le Knowledge Graph
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Rechercher des solutions similaires..."
-                      className="flex-1 px-3 py-2 border rounded-md"
-                      defaultValue={`${ticket.marque} ${ticket.modele} ${ticket.symptomes.join(' ')}`}
-                    />
-                    <Button onClick={handleKnowledgeSearch} disabled={isSearching}>
-                      {isSearching ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {searchResults.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Résultats trouvés:</h4>
-                      {searchResults.map((result, index) => (
-                        <Card key={index} className="p-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h5 className="font-medium">{result.entity.name}</h5>
-                              <p className="text-sm text-muted-foreground">{result.entity.description}</p>
-                              <Badge variant="outline" className="mt-1">
-                                Confiance: {Math.round(result.score * 100)}%
-                              </Badge>
-                            </div>
-                            <Badge>{result.entity.type}</Badge>
-                          </div>
-                        </Card>
-                      ))}
+                  )}
+                  {ticket.messages_erreur && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">MESSAGES D&apos;ERREUR</p>
+                      <div className="flex flex-wrap gap-1">
+                        {parseJsonArray(ticket.messages_erreur).map((e: string, i: number) => (
+                          <Badge key={i} variant="destructive" className="text-xs font-mono">{e}</Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Network className="h-5 w-5" />
-                  Entités Connectées
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-500">
-                      {searchResults.filter(r => r.entity.type === 'EQUIPMENT').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Équipements similaires</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-500">
-                      {searchResults.filter(r => r.entity.type === 'ERROR').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Erreurs connexes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-500">
-                      {searchResults.filter(r => r.entity.type === 'SOLUTION').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Solutions disponibles</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* Commentaires */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Commentaires ({ticket.comments?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-[500px] overflow-y-auto mb-4">
+                {ticket.comments?.length === 0 && (
+                  <p className="text-center text-muted-foreground py-6">Aucun commentaire pour le moment</p>
+                )}
+                {ticket.comments?.map((comment) => {
+                  const isSystem = comment.type === 'SYSTÈME';
+                  const isInternal = comment.type === 'INTERNE';
+                  const isOwnComment = comment.user?.id === session?.user?.id;
 
-          {/* Comments Tab */}
-          <TabsContent value="comments" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Commentaires ({ticket.comments.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {ticket.comments.map((comment) => (
-                    <div key={comment.id} className="border rounded-lg p-4">
+                  if (isSystem) {
+                    return (
+                      <div key={comment.id} className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                        <RefreshCw className="h-3 w-3" />
+                        <span>{comment.content}</span>
+                        <span className="ml-auto">{formatDate(comment.createdAt)}</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={comment.id} className={`p-4 rounded-lg border ${isInternal ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : isOwnComment ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800'}`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-                            {comment.user.name.charAt(0)}
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white ${comment.user?.role === 'ADMIN' ? 'bg-amber-500' : comment.user?.role === 'AGENT' ? 'bg-purple-500' : 'bg-blue-500'}`}>
+                            {comment.user?.name?.charAt(0) || '?'}
                           </div>
-                          <div>
-                            <p className="font-medium">{comment.user.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(comment.createdAt).toLocaleString('fr-FR')}
-                            </p>
-                          </div>
+                          <span className="font-medium text-sm">{comment.user?.name || 'Anonyme'}</span>
+                          {comment.user?.role === 'AGENT' && <Badge variant="outline" className="text-xs">Agent</Badge>}
+                          {comment.user?.role === 'ADMIN' && <Badge variant="outline" className="text-xs">Admin</Badge>}
+                          {isInternal && (
+                            <Badge className="bg-amber-100 text-amber-800 text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Interne
+                            </Badge>
+                          )}
                         </div>
-                        <Badge variant={comment.type === 'PUBLIC' ? 'default' : 'secondary'}>
-                          {comment.type}
-                        </Badge>
+                        <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</span>
                       </div>
-                      <p className="text-sm">{comment.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap ml-9">{comment.content}</p>
                     </div>
-                  ))}
+                  );
+                })}
+                <div ref={commentsEndRef} />
+              </div>
 
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Ajouter un commentaire</h4>
-                    <textarea
-                      placeholder="Écrivez votre commentaire..."
-                      className="w-full px-3 py-2 border rounded-md"
-                      rows={3}
+              {/* Formulaire de commentaire */}
+              {ticket.status !== 'FERMÉ' && ticket.status !== 'ANNULÉ' && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-medium">Ajouter un commentaire</span>
+                    {isAgent && (
+                      <Select value={commentType} onValueChange={(v: any) => setCommentType(v)}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PUBLIC">Public</SelectItem>
+                          <SelectItem value="INTERNE">Interne</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Textarea
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
+                      placeholder={commentType === 'INTERNE' ? 'Note interne (non visible par le client)...' : 'Écrire un commentaire...'}
+                      className={`flex-1 min-h-[80px] ${commentType === 'INTERNE' ? 'border-amber-300' : ''}`}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendComment();
+                      }}
                     />
-                    <div className="flex gap-2">
-                      <Button>Ajouter commentaire</Button>
-                      <Button variant="outline">Commentaire interne</Button>
-                    </div>
+                    <Button
+                      onClick={sendComment}
+                      disabled={!newComment.trim() || isSendingComment}
+                      className="self-end"
+                    >
+                      {isSendingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Ctrl+Entrée pour envoyer</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar droite */}
+        <div className="space-y-6">
+          {/* Assignation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Assignation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ticket.assignedTo ? (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                    {ticket.assignedTo.name?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{ticket.assignedTo.name || ticket.assignedTo.email}</p>
+                    <p className="text-xs text-muted-foreground">{ticket.assignedTo.email}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              ) : (
+                <p className="text-sm text-muted-foreground">Non assigné</p>
+              )}
 
-          {/* Files Tab */}
-          <TabsContent value="files" className="space-y-6">
+              {isAgent && agents.length > 0 && (
+                <div className="mt-3">
+                  <Select
+                    value={ticket.assignedToId || ''}
+                    onValueChange={(agentId) => assignTicket(agentId)}
+                  >
+                    <SelectTrigger className="text-xs">
+                      <SelectValue placeholder="Assigner à..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.name || agent.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Informations équipement */}
+          {(ticket.equipement_type || ticket.marque || ticket.modele) && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Paperclip className="h-5 w-5" />
-                  Fichiers joints ({ticket.files.length})
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Monitor className="h-4 w-4" />
+                  Équipement
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {ticket.files.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between border rounded-lg p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                          <Paperclip className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{file.nom}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {(file.taille / 1024 / 1024).toFixed(2)} MB • {file.type}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          Voir
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-1" />
-                          Télécharger
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <CardContent className="text-sm space-y-2">
+                {ticket.equipement_type && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Type</span>
+                    <span className="font-medium">{ticket.equipement_type}</span>
+                  </div>
+                )}
+                {ticket.marque && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Marque</span>
+                    <span className="font-medium">{ticket.marque}</span>
+                  </div>
+                )}
+                {ticket.modele && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Modèle</span>
+                    <span className="font-medium">{ticket.modele}</span>
+                  </div>
+                )}
+                {ticket.numero_serie && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">N° série</span>
+                    <span className="font-medium font-mono text-xs">{ticket.numero_serie}</span>
+                  </div>
+                )}
+                {ticket.garantie && (
+                  <Badge className="bg-green-100 text-green-800">Sous garantie</Badge>
+                )}
 
-                <Separator className="my-4" />
+                <Separator className="my-2" />
 
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <Paperclip className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Glissez des fichiers ici ou cliquez pour parcourir
-                  </p>
-                  <Button variant="outline">Ajouter des fichiers</Button>
-                </div>
+                {ticket.systeme_exploitation && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">OS</span>
+                    <span className="font-medium">{ticket.systeme_exploitation}</span>
+                  </div>
+                )}
+                {ticket.processeur && (
+                  <div className="flex items-center gap-1 justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1"><Cpu className="h-3 w-3" /> CPU</span>
+                    <span className="font-medium text-xs">{ticket.processeur}</span>
+                  </div>
+                )}
+                {ticket.ram && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">RAM</span>
+                    <span className="font-medium">{ticket.ram}</span>
+                  </div>
+                )}
+                {ticket.stockage && (
+                  <div className="flex items-center gap-1 justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1"><HardDrive className="h-3 w-3" /> Stockage</span>
+                    <span className="font-medium">{ticket.stockage}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+
+          {/* Localisation */}
+          {(ticket.site || ticket.batiment || ticket.etage || ticket.bureau) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Localisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2">
+                {ticket.site && <div className="flex justify-between"><span className="text-muted-foreground">Site</span><span className="font-medium">{ticket.site}</span></div>}
+                {ticket.batiment && <div className="flex justify-between"><span className="text-muted-foreground">Bâtiment</span><span className="font-medium">{ticket.batiment}</span></div>}
+                {ticket.etage && <div className="flex justify-between"><span className="text-muted-foreground">Étage</span><span className="font-medium">{ticket.etage}</span></div>}
+                {ticket.bureau && <div className="flex justify-between"><span className="text-muted-foreground">Bureau</span><span className="font-medium">{ticket.bureau}</span></div>}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tags & Métadonnées */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Détails</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-3">
+              {ticket.type_panne && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type panne</span>
+                  <Badge variant="outline">{ticket.type_panne}</Badge>
+                </div>
+              )}
+              {ticket.categorie && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Catégorie</span>
+                  <span className="font-medium">{ticket.categorie}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Créé le</span>
+                <span className="font-medium text-xs">{formatDate(ticket.createdAt)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Mis à jour</span>
+                <span className="font-medium text-xs">{formatDate(ticket.updatedAt)}</span>
+              </div>
+              {ticket.actualResolutionTime && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Résolu le</span>
+                  <span className="font-medium text-xs">{formatDate(ticket.actualResolutionTime)}</span>
+                </div>
+              )}
+
+              {tags.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-muted-foreground mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-1">
+                    {tags.map((tag: string) => (
+                      <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Demandeur */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <UserIcon className="h-4 w-4" />
+                Demandeur
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                  {ticket.user?.name?.charAt(0) || '?'}
+                </div>
+                <div>
+                  <p className="font-medium">{ticket.user?.name || 'Inconnu'}</p>
+                  <p className="text-xs text-muted-foreground">{ticket.user?.email}</p>
+                </div>
+              </div>
+              {ticket.telephone_contact && (
+                <div className="flex items-center gap-2 mt-2 text-xs">
+                  <Phone className="h-3 w-3 text-muted-foreground" />
+                  {ticket.telephone_contact}
+                </div>
+              )}
+              {ticket.email_contact && (
+                <div className="flex items-center gap-2 text-xs">
+                  <Mail className="h-3 w-3 text-muted-foreground" />
+                  {ticket.email_contact}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

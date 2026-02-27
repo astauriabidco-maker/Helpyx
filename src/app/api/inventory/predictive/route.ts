@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
 
 interface PredictiveAlert {
   id: string;
@@ -24,11 +23,11 @@ export async function GET(request: NextRequest) {
     const deviceId = searchParams.get('deviceId');
     const category = searchParams.get('category');
 
-    // Récupérer les équipements depuis la base de données
-    const equipment = await db.equipment.findMany({
+    // Récupérer les équipements (DigitalTwins) depuis la base de données
+    const equipment = await db.digitalTwin.findMany({
       where: deviceId ? { id: deviceId } : {},
       include: {
-        maintenanceRecords: {
+        maintenance: {
           orderBy: { createdAt: 'desc' },
           take: 10
         }
@@ -36,14 +35,15 @@ export async function GET(request: NextRequest) {
     });
 
     if (equipment.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         alerts: [],
         summary: { total: 0, critical: 0, warning: 0, info: 0 }
       });
     }
 
     // Initialiser ZAI pour l'analyse prédictive
+    const ZAI = (await import('z-ai-web-dev-sdk')).default;
     const zai = await ZAI.create();
 
     const allAlerts: PredictiveAlert[] = [];
@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
     // Analyser chaque équipement
     for (const device of equipment) {
       const deviceAge = calculateDeviceAge(device.purchaseDate);
-      const lastMaintenance = device.maintenanceRecords[0];
-      const maintenanceFrequency = calculateMaintenanceFrequency(device.maintenanceRecords);
+      const lastMaintenance = device.maintenance[0];
+      const maintenanceFrequency = calculateMaintenanceFrequency(device.maintenance);
 
       // Analyse prédictive avec IA
       const predictiveAnalysis = await analyzePredictiveRisks(zai, {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         deviceAge,
         lastMaintenance,
         maintenanceFrequency,
-        category
+        category: category ?? undefined
       });
 
       allAlerts.push(...predictiveAnalysis.alerts);
@@ -127,7 +127,7 @@ async function analyzePredictiveRisks(zai: any, context: {
 HISTORIQUE :
 - Dernière maintenance: ${lastMaintenance ? new Date(lastMaintenance.createdAt).toLocaleDateString('fr-FR') : 'Jamais'}
 - Fréquence de maintenance: ${maintenanceFrequency} jours
-- Nombre total de maintenances: ${device.maintenanceRecords.length}
+- Nombre total de maintenances: ${device.maintenance.length}
 
 Génère 3-5 alertes prédictives potentielles au format JSON :
 {
@@ -235,20 +235,20 @@ function calculateDeviceAge(purchaseDate: Date): number {
 
 function calculateMaintenanceFrequency(maintenanceRecords: any[]): number {
   if (maintenanceRecords.length < 2) return 0;
-  
-  const sorted = maintenanceRecords.sort((a, b) => 
+
+  const sorted = maintenanceRecords.sort((a, b) =>
     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
-  
+
   let totalDays = 0;
   for (let i = 1; i < sorted.length; i++) {
     const days = Math.abs(
-      (new Date(sorted[i].createdAt).getTime() - new Date(sorted[i-1].createdAt).getTime()) 
+      (new Date(sorted[i].createdAt).getTime() - new Date(sorted[i - 1].createdAt).getTime())
       / (1000 * 60 * 60 * 24)
     );
     totalDays += days;
   }
-  
+
   return Math.floor(totalDays / (sorted.length - 1));
 }
 

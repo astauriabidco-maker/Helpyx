@@ -38,7 +38,7 @@ export function EnhancedToaster() {
           <Toast key={id} variant={variant} {...props}>
             <div className="grid gap-1">
               <div className="flex items-center gap-2">
-                {getIcon(variant)}
+                {getIcon(variant ?? undefined)}
                 {title && <ToastTitle>{title}</ToastTitle>}
               </div>
               {description && (

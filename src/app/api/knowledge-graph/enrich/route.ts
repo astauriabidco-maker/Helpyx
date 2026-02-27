@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KnowledgeGraphEngine } from '@/lib/knowledge-graph';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 // Instance singleton du moteur
 let kgEngine: KnowledgeGraphEngine | null = null;
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const engine = getKnowledgeGraphEngine();
-    const zai = await ZAI.create();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
 
     switch (action) {
       case 'enrich-ticket':
@@ -119,8 +119,8 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
     }
 
     // Ajouter les entités extraites au graphe
-    const addedEntities = [];
-    const addedRelations = [];
+    const addedEntities: any[] = [];
+    const addedRelations: any[] = [];
 
     // Traiter les équipements
     if (extractedData.equipment) {
@@ -142,7 +142,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
           ticketIds: [ticketId]
         };
 
-        engine.addEntity(entity);
+        engine.addEntity(entity as any);
         addedEntities.push(entity);
 
         // Ajouter la marque si elle n'existe pas
@@ -161,7 +161,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
             updatedAt: new Date()
           };
 
-          engine.addEntity(brandEntity);
+          engine.addEntity(brandEntity as any);
           addedEntities.push(brandEntity);
 
           // Créer la relation marque-équipement
@@ -179,7 +179,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
             createdAt: new Date()
           };
 
-          engine.addRelation(relation);
+          engine.addRelation(relation as any);
           addedRelations.push(relation);
         }
       }
@@ -205,7 +205,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
           ticketIds: [ticketId]
         };
 
-        engine.addEntity(entity);
+        engine.addEntity(entity as any);
         addedEntities.push(entity);
 
         // Lier les erreurs aux équipements
@@ -226,7 +226,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
               createdAt: new Date()
             };
 
-            engine.addRelation(relation);
+            engine.addRelation(relation as any);
             addedRelations.push(relation);
           }
         }
@@ -252,7 +252,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
           ticketIds: [ticketId]
         };
 
-        engine.addEntity(entity);
+        engine.addEntity(entity as any);
         addedEntities.push(entity);
 
         // Lier les solutions aux erreurs
@@ -274,7 +274,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
               createdAt: new Date()
             };
 
-            engine.addRelation(relation);
+            engine.addRelation(relation as any);
             addedRelations.push(relation);
           }
         }
@@ -295,7 +295,7 @@ async function enrichTicket(data: any, engine: KnowledgeGraphEngine, zai: any) {
   } catch (error) {
     console.error('Ticket enrichment error:', error);
     return NextResponse.json(
-      { error: 'Failed to enrich ticket', details: error.message },
+      { error: 'Failed to enrich ticket', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -361,7 +361,7 @@ async function suggestEntities(data: any, engine: KnowledgeGraphEngine, zai: any
   } catch (error) {
     console.error('Entity suggestions error:', error);
     return NextResponse.json(
-      { error: 'Failed to suggest entities', details: error.message },
+      { error: 'Failed to suggest entities', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -371,7 +371,7 @@ async function validateRelations(data: any, engine: KnowledgeGraphEngine, zai: a
   try {
     const { relations } = data;
 
-    const validatedRelations = [];
+    const validatedRelations: any[] = [];
 
     for (const relation of relations) {
       // Utiliser ZAI pour valider la relation
@@ -437,7 +437,7 @@ async function validateRelations(data: any, engine: KnowledgeGraphEngine, zai: a
   } catch (error) {
     console.error('Relation validation error:', error);
     return NextResponse.json(
-      { error: 'Failed to validate relations', details: error.message },
+      { error: 'Failed to validate relations', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -517,7 +517,7 @@ async function generateInsights(data: any, engine: KnowledgeGraphEngine, zai: an
   } catch (error) {
     console.error('Insights generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate insights', details: error.message },
+      { error: 'Failed to generate insights', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -527,7 +527,7 @@ async function autoCategorize(data: any, engine: KnowledgeGraphEngine, zai: any)
   try {
     const { entities } = data;
 
-    const categorizedEntities = [];
+    const categorizedEntities: any[] = [];
 
     for (const entity of entities) {
       // Utiliser ZAI pour catégoriser l'entité
@@ -593,7 +593,7 @@ async function autoCategorize(data: any, engine: KnowledgeGraphEngine, zai: any)
   } catch (error) {
     console.error('Auto-categorization error:', error);
     return NextResponse.json(
-      { error: 'Failed to auto-categorize', details: error.message },
+      { error: 'Failed to auto-categorize', details: (error as any).message },
       { status: 500 }
     );
   }

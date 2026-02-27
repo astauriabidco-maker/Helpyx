@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
 
 interface TicketAnalysis {
   category: string;
@@ -21,8 +20,11 @@ interface Solution {
 }
 
 export async function POST(request: NextRequest) {
+  let ticketDescription = ''
   try {
-    const { ticketDescription, equipmentInfo } = await request.json()
+    const body = await request.json()
+    ticketDescription = body.ticketDescription || ''
+    const equipmentInfo = body.equipmentInfo
 
     if (!ticketDescription) {
       return NextResponse.json(
@@ -31,7 +33,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Utiliser ZAI pour l'analyse
+    // Utiliser ZAI pour l'analyse (import dynamique)
+    const { default: ZAI } = await import('z-ai-web-dev-sdk')
     const zai = await ZAI.create()
 
     const prompt = `
@@ -87,7 +90,7 @@ Sois précis et réaliste dans tes estimations. Base tes suggestions sur les pro
     })
 
     const response = completion.choices[0]?.message?.content
-    
+
     if (response) {
       // Nettoyer la réponse JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/)
@@ -110,7 +113,7 @@ Sois précis et réaliste dans tes estimations. Base tes suggestions sur les pro
 
 function getFallbackAnalysis(ticketDescription: string): TicketAnalysis {
   const keywords = ticketDescription.toLowerCase()
-  
+
   let category = 'autre'
   let priority: 'low' | 'medium' | 'high' | 'critical' = 'medium'
   let estimatedTime = 30

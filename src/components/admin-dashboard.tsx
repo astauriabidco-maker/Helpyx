@@ -6,169 +6,115 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { 
-  Users, 
-  Ticket, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Users,
+  Ticket,
+  CheckCircle,
+  AlertCircle,
   TrendingUp,
-  Calendar,
-  MessageSquare,
   FileText,
   Settings,
-  Plus,
   Search,
   Filter,
   BarChart3,
   Activity,
-  UserCheck,
-  Timer,
   DollarSign,
   Server,
   Shield,
   Database,
   Cpu,
-  Globe,
-  Zap
+  Package,
+  BookOpen,
+  AlertTriangle,
+  Clock,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useSocket } from '@/hooks/useSocket';
 
 interface AdminStats {
   totalUsers: number;
   totalAgents: number;
+  admins: number;
   totalTickets: number;
   activeTickets: number;
   resolvedTickets: number;
-  systemUptime: number;
-  serverLoad: number;
-  monthlyRevenue: number;
-  customerSatisfaction: number;
-  avgResponseTime: number;
+  criticalTickets: number;
+  resolutionRate: number;
+  inventoryCount: number;
+  lowStockCount: number;
+  articlesCount: number;
 }
 
-interface SystemAlert {
-  id: string;
-  type: 'error' | 'warning' | 'info';
-  title: string;
-  description: string;
-  timestamp: string;
-  resolved: boolean;
+interface RecentTicket {
+  id: number;
+  titre: string | null;
+  status: string;
+  priorite: string;
+  createdAt: string;
+  user: { name: string | null; email: string };
+  assignedTo: { name: string | null; email: string } | null;
 }
 
-interface UserActivity {
+interface RecentActivity {
   id: string;
   user: string;
   action: string;
+  type: string;
   timestamp: string;
-  ip: string;
+}
+
+interface StatsData {
+  stats: AdminStats;
+  ticketsByStatus: Record<string, number>;
+  ticketsByPriority: Record<string, number>;
+  recentTickets: RecentTicket[];
+  recentActivities: RecentActivity[];
 }
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
-  const [adminStats, setAdminStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalAgents: 0,
-    totalTickets: 0,
-    activeTickets: 0,
-    resolvedTickets: 0,
-    systemUptime: 0,
-    serverLoad: 0,
-    monthlyRevenue: 0,
-    customerSatisfaction: 0,
-    avgResponseTime: 0
-  });
-  const [systemAlerts, setSystemAlerts] = useState<SystemAlert[]>([]);
-  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
+  const [data, setData] = useState<StatsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isConnected, on, off, declareOnline } = useSocket();
+
+  const fetchStats = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/stats');
+      if (!res.ok) throw new Error('Erreur de chargement');
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      setError('Impossible de charger les statistiques');
+      console.error('Fetch stats error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simuler le chargement des données administrateur
-    const mockStats: AdminStats = {
-      totalUsers: 1247,
-      totalAgents: 15,
-      totalTickets: 5632,
-      activeTickets: 127,
-      resolvedTickets: 5505,
-      systemUptime: 99.9,
-      serverLoad: 45,
-      monthlyRevenue: 45678,
-      customerSatisfaction: 4.6,
-      avgResponseTime: 2.3
-    };
-    setAdminStats(mockStats);
-
-    const mockAlerts: SystemAlert[] = [
-      {
-        id: '1',
-        type: 'warning',
-        title: 'Charge serveur élevée',
-        description: 'Le serveur principal dépasse 80% d\'utilisation CPU',
-        timestamp: '2024-01-15T14:30:00Z',
-        resolved: false
-      },
-      {
-        id: '2',
-        type: 'error',
-        title: 'Échec de sauvegarde',
-        description: 'La sauvegarde automatique de 02:00 a échoué',
-        timestamp: '2024-01-15T02:00:00Z',
-        resolved: true
-      },
-      {
-        id: '3',
-        type: 'info',
-        title: 'Mise à jour système',
-        description: 'Une nouvelle mise à jour est disponible',
-        timestamp: '2024-01-14T18:00:00Z',
-        resolved: false
-      }
-    ];
-    setSystemAlerts(mockAlerts);
-
-    const mockActivities: UserActivity[] = [
-      {
-        id: '1',
-        user: 'admin@company.com',
-        action: 'Connexion au panneau d\'administration',
-        timestamp: '2024-01-15T15:30:00Z',
-        ip: '192.168.1.100'
-      },
-      {
-        id: '2',
-        user: 'agent@company.com',
-        action: 'Création du ticket TK-4567',
-        timestamp: '2024-01-15T15:25:00Z',
-        ip: '192.168.1.101'
-      },
-      {
-        id: '3',
-        user: 'user@example.com',
-        action: 'Mise à jour du profil',
-        timestamp: '2024-01-15T15:20:00Z',
-        ip: '192.168.1.102'
-      }
-    ];
-    setUserActivities(mockActivities);
+    fetchStats();
   }, []);
 
-  const getAlertColor = (type: string) => {
-    switch (type) {
-      case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'warning': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'info': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      default: return 'bg-gray-100 text-gray-800';
+  useEffect(() => {
+    if (session?.user?.id) {
+      declareOnline(session.user.id, 'ADMIN');
     }
-  };
 
-  const getAlertIcon = (type: string) => {
-    switch (type) {
-      case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'warning': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case 'info': return <Activity className="h-4 w-4 text-blue-500" />;
-      default: return <Activity className="h-4 w-4 text-gray-500" />;
+    const handleUpdate = () => fetchStats();
+    on('ticket_update', handleUpdate);
+    on('notification', handleUpdate);
+
+    return () => {
+      off('ticket_update', handleUpdate);
+      off('notification', handleUpdate);
     }
-  };
+  }, [on, off, session, declareOnline]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -179,32 +125,103 @@ export default function AdminDashboard() {
     });
   };
 
-  const resolutionRate = adminStats.totalTickets > 0 ? (adminStats.resolvedTickets / adminStats.totalTickets) * 100 : 0;
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      'OUVERT': { label: 'Ouvert', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      'EN_DIAGNOSTIC': { label: 'Diagnostic', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+      'EN_REPARATION': { label: 'Réparation', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+      'REPARÉ': { label: 'Réparé', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+      'FERMÉ': { label: 'Fermé', className: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' },
+      'ANNULÉ': { label: 'Annulé', className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+    };
+    const badge = map[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    return <Badge className={badge.className}>{badge.label}</Badge>;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      'CRITIQUE': { label: 'Critique', className: 'bg-red-600 text-white' },
+      'HAUTE': { label: 'Haute', className: 'bg-orange-500 text-white' },
+      'MOYENNE': { label: 'Moyenne', className: 'bg-yellow-500 text-white' },
+      'BASSE': { label: 'Basse', className: 'bg-green-500 text-white' },
+    };
+    const badge = map[priority] || { label: priority, className: 'bg-gray-500 text-white' };
+    return <Badge className={badge.className}>{badge.label}</Badge>;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-slate-600 dark:text-slate-400">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+            <p className="text-slate-600 mb-4">{error || 'Erreur de chargement'}</p>
+            <Button onClick={fetchStats}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { stats, ticketsByStatus, ticketsByPriority, recentTickets, recentActivities } = data;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div>
+      <div className="space-y-6">
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Panneau d'Administration
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Vue d'ensemble complète du système et gestion des opérations
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord Administrateur</h1>
+            <p className="text-muted-foreground">
+              Vue d'ensemble de l'activité du support informatique.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {isConnected && (
+              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                </span>
+                En temps réel
+              </div>
+            )}
+            <Button onClick={fetchStats} variant="outline" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+            <Button className="gap-2">
+              <FileText className="h-4 w-4" />
+              Rapport
+            </Button>
+          </div>
         </div>
 
-        {/* Statistiques principales */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Utilisateurs totaux</CardTitle>
+              <CardTitle className="text-sm font-medium">Utilisateurs</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminStats.totalUsers.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
               <p className="text-xs text-muted-foreground">
-                +12% ce mois-ci
+                {stats.totalAgents} agents · {stats.admins} admins
               </p>
             </CardContent>
           </Card>
@@ -215,159 +232,213 @@ export default function AdminDashboard() {
               <Ticket className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{adminStats.activeTickets}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.activeTickets}</div>
               <p className="text-xs text-muted-foreground">
-                {adminStats.totalTickets} au total
+                {stats.totalTickets} au total
+                {stats.criticalTickets > 0 && (
+                  <span className="text-red-600 ml-1">· {stats.criticalTickets} critique{stats.criticalTickets > 1 ? 's' : ''}</span>
+                )}
               </p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenus mensuels</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium">Taux de résolution</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                ${adminStats.monthlyRevenue.toLocaleString()}
+                {stats.resolutionRate}%
               </div>
               <p className="text-xs text-muted-foreground">
-                +8% vs mois dernier
+                {stats.resolvedTickets} ticket{stats.resolvedTickets > 1 ? 's' : ''} résolu{stats.resolvedTickets > 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Satisfaction</CardTitle>
-              <BarChart3 className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium">Inventaire</CardTitle>
+              <Package className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{adminStats.customerSatisfaction}/5</div>
+              <div className="text-2xl font-bold text-purple-600">{stats.inventoryCount}</div>
               <p className="text-xs text-muted-foreground">
-                Note moyenne clients
+                pièces · {stats.articlesCount} articles KB
               </p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
+            <TabsTrigger value="tickets">Tickets</TabsTrigger>
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-            <TabsTrigger value="system">Système</TabsTrigger>
-            <TabsTrigger value="alerts">Alertes</TabsTrigger>
-            <TabsTrigger value="logs">Journaux</TabsTrigger>
+            <TabsTrigger value="activity">Activité</TabsTrigger>
           </TabsList>
 
           {/* Onglet Aperçu */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Performance des tickets */}
+              {/* Répartition par statut */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Performance des tickets
+                    <BarChart3 className="h-5 w-5" />
+                    Tickets par statut
                   </CardTitle>
-                  <CardDescription>
-                    Statistiques de résolution et temps de réponse
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Taux de résolution</span>
-                      <span className="text-sm">{resolutionRate.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={resolutionRate} className="h-2" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Résolus:</span>
-                      <span className="ml-2 font-medium">{adminStats.resolvedTickets}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Actifs:</span>
-                      <span className="ml-2 font-medium">{adminStats.activeTickets}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Temps de réponse:</span>
-                      <span className="ml-2 font-medium">{adminStats.avgResponseTime}h</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Satisfaction:</span>
-                      <span className="ml-2 font-medium">{adminStats.customerSatisfaction}/5</span>
-                    </div>
-                  </div>
+                  {Object.entries({
+                    'OUVERT': { label: 'Ouverts', color: 'bg-blue-500' },
+                    'EN_DIAGNOSTIC': { label: 'En diagnostic', color: 'bg-yellow-500' },
+                    'EN_REPARATION': { label: 'En réparation', color: 'bg-orange-500' },
+                    'REPARÉ': { label: 'Réparés', color: 'bg-green-500' },
+                    'FERMÉ': { label: 'Fermés', color: 'bg-gray-400' },
+                  }).map(([status, { label, color }]) => {
+                    const count = ticketsByStatus[status] || 0;
+                    const pct = stats.totalTickets > 0 ? (count / stats.totalTickets) * 100 : 0;
+                    return (
+                      <div key={status} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>{label}</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
-              {/* État du système */}
+              {/* Répartition par priorité */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    État du système
+                    <AlertTriangle className="h-5 w-5" />
+                    Tickets par priorité
                   </CardTitle>
-                  <CardDescription>
-                    Performance et disponibilité
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Disponibilité</span>
-                      <span className="text-sm">{adminStats.systemUptime}%</span>
+                  {Object.entries({
+                    'CRITIQUE': { label: 'Critique', color: 'bg-red-600' },
+                    'HAUTE': { label: 'Haute', color: 'bg-orange-500' },
+                    'MOYENNE': { label: 'Moyenne', color: 'bg-yellow-500' },
+                    'BASSE': { label: 'Basse', color: 'bg-green-500' },
+                  }).map(([priority, { label, color }]) => {
+                    const count = ticketsByPriority[priority] || 0;
+                    const pct = stats.totalTickets > 0 ? (count / stats.totalTickets) * 100 : 0;
+                    return (
+                      <div key={priority} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>{label}</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {stats.criticalTickets > 0 && (
+                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm text-red-700 dark:text-red-300">
+                        {stats.criticalTickets} ticket{stats.criticalTickets > 1 ? 's' : ''} critique{stats.criticalTickets > 1 ? 's' : ''} en attente
+                      </span>
                     </div>
-                    <Progress value={adminStats.systemUptime} className="h-2" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Charge serveur</span>
-                      <span className="text-sm">{adminStats.serverLoad}%</span>
-                    </div>
-                    <Progress value={adminStats.serverLoad} className="h-2" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Agents:</span>
-                      <span className="ml-2 font-medium">{adminStats.totalAgents}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Utilisateurs:</span>
-                      <span className="ml-2 font-medium">{adminStats.totalUsers}</span>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Activité récente */}
+            {/* Raccourcis rapides */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link href="/admin/tickets">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Ticket className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium">Gérer les tickets</span>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/admin/users">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Users className="h-5 w-5 text-purple-600" />
+                    <span className="text-sm font-medium">Gérer les utilisateurs</span>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/inventory">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Package className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium">Inventaire</span>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/admin/settings">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Settings className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium">Paramètres</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </TabsContent>
+
+          {/* Onglet Tickets récents */}
+          <TabsContent value="tickets" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Activité système récente</CardTitle>
-                <CardDescription>
-                  Dernières activités détectées
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Derniers tickets</CardTitle>
+                    <CardDescription>Les 5 tickets les plus récents</CardDescription>
+                  </div>
+                  <Link href="/admin/tickets">
+                    <Button variant="outline" size="sm">
+                      Voir tous les tickets
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {userActivities.slice(0, 5).map((activity) => (
-                    <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Activity className="h-4 w-4 text-blue-500" />
-                        <div>
-                          <p className="font-medium">{activity.user}</p>
-                          <p className="text-sm text-muted-foreground">{activity.action}</p>
+                <div className="space-y-3">
+                  {recentTickets.map((ticket) => (
+                    <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
+                      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-4 flex-1">
+                          <span className="text-sm font-mono text-muted-foreground">#{ticket.id}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{ticket.titre || 'Sans titre'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              par {ticket.user?.name || ticket.user?.email}
+                              {ticket.assignedTo && ` → ${ticket.assignedTo.name || ticket.assignedTo.email}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {getPriorityBadge(ticket.priorite)}
+                          {getStatusBadge(ticket.status)}
+                          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                            {formatDate(ticket.createdAt)}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm">{formatDate(activity.timestamp)}</p>
-                        <p className="text-xs text-muted-foreground">{activity.ip}</p>
-                      </div>
-                    </div>
+                    </Link>
                   ))}
+                  {recentTickets.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Aucun ticket pour le moment
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -378,64 +449,64 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Gestion des utilisateurs</CardTitle>
-                  <CardDescription>
-                    Ajoutez et gérez les comptes utilisateurs
-                  </CardDescription>
+                  <CardTitle>Répartition</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un utilisateur
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Users className="h-4 w-4 mr-2" />
-                    Voir tous les utilisateurs
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Gérer les permissions
-                  </Button>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm">Clients</span>
+                      </div>
+                      <span className="font-bold text-blue-600">
+                        {stats.totalUsers - stats.totalAgents - stats.admins}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm">Agents</span>
+                      </div>
+                      <span className="font-bold text-purple-600">{stats.totalAgents}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm">Administrateurs</span>
+                      </div>
+                      <span className="font-bold text-amber-600">{stats.admins}</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Statistiques des utilisateurs</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Actions rapides</CardTitle>
+                    <Link href="/admin/users">
+                      <Button size="sm">Gérer les utilisateurs</Button>
+                    </Link>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Répartition par type</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Clients</span>
-                          <span className="font-medium">{adminStats.totalUsers - adminStats.totalAgents}</span>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Résumé</h4>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                          <p className="text-xs text-muted-foreground">Total</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Agents</span>
-                          <span className="font-medium">{adminStats.totalAgents}</span>
+                        <div>
+                          <p className="text-2xl font-bold text-green-600">{stats.totalAgents}</p>
+                          <p className="text-xs text-muted-foreground">Agents actifs</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Administrateurs</span>
-                          <span className="font-medium">3</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Activité ce mois</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Nouveaux utilisateurs</span>
-                          <span className="font-medium">+147</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Utilisateurs actifs</span>
-                          <span className="font-medium">892</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Taux de rétention</span>
-                          <span className="font-medium">94%</span>
+                        <div>
+                          <p className="text-2xl font-bold text-blue-600">
+                            {stats.totalUsers - stats.totalAgents - stats.admins}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Clients</p>
                         </div>
                       </div>
                     </div>
@@ -445,178 +516,45 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* Onglet Système */}
-          <TabsContent value="system" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Cpu className="h-5 w-5" />
-                    Ressources système
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">CPU</span>
-                      <span className="text-sm">{adminStats.serverLoad}%</span>
-                    </div>
-                    <Progress value={adminStats.serverLoad} className="h-2" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Mémoire</span>
-                      <span className="text-sm">67%</span>
-                    </div>
-                    <Progress value={67} className="h-2" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Stockage</span>
-                      <span className="text-sm">45%</span>
-                    </div>
-                    <Progress value={45} className="h-2" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Bande passante</span>
-                      <span className="text-sm">23%</span>
-                    </div>
-                    <Progress value={23} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="h-5 w-5" />
-                    Base de données
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">Taille totale</span>
-                      <p className="font-medium">2.4 GB</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">Entrées totales</span>
-                      <p className="font-medium">15,234</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">Sauvegardes</span>
-                      <p className="font-medium">Automatiques</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">Dernière sauvegarde</span>
-                      <p className="font-medium">Il y a 2h</p>
-                    </div>
-                  </div>
-                  <div className="pt-4 space-y-2">
-                    <Button variant="outline" className="w-full">
-                      <Database className="h-4 w-4 mr-2" />
-                      Sauvegarder maintenant
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configurer la sauvegarde
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Onglet Alertes */}
-          <TabsContent value="alerts" className="space-y-6">
+          {/* Onglet Activité */}
+          <TabsContent value="activity" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Alertes système</CardTitle>
-                  <Button variant="outline">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filtrer
-                  </Button>
-                </div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Activité récente
+                </CardTitle>
                 <CardDescription>
-                  Notifications et alertes importantes
+                  Dernières actions dans le système
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {systemAlerts.map((alert) => (
-                    <div key={alert.id} className={`p-4 border rounded-lg ${alert.resolved ? 'opacity-50' : ''}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          {getAlertIcon(alert.type)}
-                          <div>
-                            <h4 className="font-medium">{alert.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <Badge className={getAlertColor(alert.type)}>
-                                {alert.type === 'error' ? 'Erreur' : 
-                                 alert.type === 'warning' ? 'Avertissement' : 'Information'}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {formatDate(alert.timestamp)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {alert.resolved ? (
-                            <Badge variant="outline">Résolue</Badge>
-                          ) : (
-                            <Button size="sm">Résoudre</Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Onglet Journaux */}
-          <TabsContent value="logs" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Journaux d'activité</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filtrer
-                    </Button>
-                    <Button variant="outline">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Exporter
-                    </Button>
-                  </div>
-                </div>
-                <CardDescription>
-                  Journal complet des activités système
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {userActivities.map((activity) => (
+                <div className="space-y-3">
+                  {recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className={`w-2 h-2 rounded-full ${activity.type === 'ticket' ? 'bg-blue-500' : 'bg-green-500'
+                          }`} />
                         <div>
-                          <p className="font-medium">{activity.user}</p>
+                          <p className="font-medium text-sm">{activity.user}</p>
                           <p className="text-sm text-muted-foreground">{activity.action}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm">{formatDate(activity.timestamp)}</p>
-                        <p className="text-xs text-muted-foreground">IP: {activity.ip}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(activity.timestamp)}
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          {activity.type === 'ticket' ? 'Ticket' : 'Connexion'}
+                        </Badge>
                       </div>
                     </div>
                   ))}
+                  {recentActivities.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Aucune activité récente
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

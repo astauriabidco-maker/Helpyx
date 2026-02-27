@@ -18,11 +18,12 @@ const updateInventorySchema = z.object({
 // GET - Récupérer un article spécifique
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const item = await db.inventory.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ticketItems: {
           include: {
@@ -67,15 +68,16 @@ export async function GET(
 // PUT - Mettre à jour un article
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateInventorySchema.parse(body);
 
     // Vérifier si l'article existe
     const existingItem = await db.inventory.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingItem) {
@@ -100,7 +102,7 @@ export async function PUT(
     }
 
     const item = await db.inventory.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...validatedData,
         updatedAt: new Date()
@@ -124,12 +126,13 @@ export async function PUT(
 // DELETE - Supprimer un article
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Vérifier si l'article est utilisé dans des tickets
     const ticketItems = await db.ticketInventoryItem.findMany({
-      where: { inventoryId: params.id }
+      where: { inventoryId: id }
     });
 
     if (ticketItems.length > 0) {
@@ -140,7 +143,7 @@ export async function DELETE(
     }
 
     await db.inventory.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     return NextResponse.json({ message: 'Article supprimé avec succès' });

@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireTenant } from '@/lib/tenant';
 
 export async function GET() {
   try {
-    // Get ticket statistics
-    const totalTickets = await db.ticket.count();
-    const openTickets = await db.ticket.count({ where: { status: 'ouvert' } });
-    const inProgressTickets = await db.ticket.count({ where: { status: 'en_cours' } });
-    const closedTickets = await db.ticket.count({ where: { status: 'fermé' } });
+    // Multi-tenant: récupérer le contexte (auth + companyId)
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+    const { companyId, user } = ctx;
 
-    // Get user statistics
-    const totalUsers = await db.user.count();
-    const clientUsers = await db.user.count({ where: { role: 'CLIENT' } });
-    const agentUsers = await db.user.count({ where: { role: 'AGENT' } });
-    const adminUsers = await db.user.count({ where: { role: 'ADMIN' } });
+    // Get ticket statistics — filtrés par entreprise
+    const totalTickets = await db.ticket.count({ where: { companyId } });
+    const openTickets = await db.ticket.count({ where: { companyId, status: 'OUVERT' } });
+    const inProgressTickets = await db.ticket.count({ where: { companyId, status: 'EN_REPARATION' } });
+    const closedTickets = await db.ticket.count({ where: { companyId, status: 'FERMÉ' } });
 
-    // Get recent tickets (last 10)
+    // Get user statistics — filtrés par entreprise
+    const totalUsers = await db.user.count({ where: { companyId } });
+    const clientUsers = await db.user.count({ where: { companyId, role: 'CLIENT' } });
+    const agentUsers = await db.user.count({ where: { companyId, role: 'AGENT' } });
+    const adminUsers = await db.user.count({ where: { companyId, role: 'ADMIN' } });
+
+    // Get recent tickets (last 10) — filtrés par entreprise
     const recentTickets = await db.ticket.findMany({
+      where: { companyId },
       take: 10,
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {

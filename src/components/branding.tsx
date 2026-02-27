@@ -17,7 +17,7 @@ interface BrandingProviderProps {
 }
 
 const defaultBranding: BrandingConfig = {
-  companyName: 'TechSupport',
+  companyName: 'Helpyx',
   primaryColor: '#3b82f6',
   secondaryColor: '#10b981',
 };
@@ -30,11 +30,11 @@ export function BrandingProvider({ children, config }: BrandingProviderProps) {
     const root = document.documentElement;
     root.style.setProperty('--brand-primary', branding.primaryColor);
     root.style.setProperty('--brand-secondary', branding.secondaryColor);
-    
+
     // Mettre à jour le favicon si fourni
     if (branding.favicon) {
-      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || 
-                   document.createElement('link');
+      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement ||
+        document.createElement('link');
       link.type = 'image/x-icon';
       link.rel = 'shortcut icon';
       link.href = branding.favicon;
@@ -47,7 +47,7 @@ export function BrandingProvider({ children, config }: BrandingProviderProps) {
 
 export function useBranding() {
   return {
-    companyName: 'TechSupport', // Peut venir d'un contexte global
+    companyName: 'Helpyx', // Peut venir d'un contexte global
     primaryColor: 'var(--brand-primary)',
     secondaryColor: 'var(--brand-secondary)',
   };
@@ -62,7 +62,7 @@ interface BrandingCardProps {
 
 export function BrandingCard({ children, variant = 'default', className }: BrandingCardProps) {
   return (
-    <div 
+    <div
       className={cn(
         "rounded-lg border bg-card text-card-foreground shadow-sm",
         variant === 'branded' && "border-l-4 border-l-[var(--brand-primary)]",
@@ -81,11 +81,11 @@ interface BrandingButtonProps {
   onClick?: () => void;
 }
 
-export function BrandingButton({ 
-  children, 
-  variant = 'default', 
+export function BrandingButton({
+  children,
+  variant = 'default',
   className,
-  onClick 
+  onClick
 }: BrandingButtonProps) {
   return (
     <button

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 export async function POST(request: NextRequest) {
   try {
     const { text, model, includeEntities, includeSentiment, includeIntent, includeSummary, includeEmbeddings } = await request.json();
 
-    const zai = await ZAI.create();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default;
+    const zai: any = await ZAI.create();
 
     // Analyse complète avec GPT-4
     const analysisPrompt = `
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     const analysisResult = JSON.parse(completion.choices[0].message.content || '{}');
 
     // Génération d'embeddings si demandé
-    let embeddings = [];
+    let embeddings: any[] = [];
     if (includeEmbeddings) {
       try {
         const embeddingResponse = await zai.embeddings.create({

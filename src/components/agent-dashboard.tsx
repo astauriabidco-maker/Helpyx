@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { 
-  Users, 
-  Ticket, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Users,
+  Ticket,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   TrendingUp,
   Calendar,
   MessageSquare,
@@ -38,6 +38,7 @@ import { Leaderboard } from '@/components/gamification/leaderboard';
 import { AIDiagnostic } from '@/components/ai/ai-diagnostic';
 import { AgentTraining } from '@/components/ai/agent-training';
 import { AutoResponse } from '@/components/ai/auto-response';
+import { useSocket } from '@/hooks/useSocket';
 
 interface AgentStats {
   totalTickets: number;
@@ -70,6 +71,7 @@ interface TeamMember {
 
 export default function AgentDashboard() {
   const { data: session } = useSession();
+  const { isConnected, declareOnline, on, off } = useSocket();
   const [agentStats, setAgentStats] = useState<AgentStats>({
     totalTickets: 0,
     myTickets: 0,
@@ -81,6 +83,22 @@ export default function AgentDashboard() {
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      declareOnline(session.user.id, 'AGENT');
+    }
+  }, [session, declareOnline]);
+
+  useEffect(() => {
+    // Si on reçoit des updates réels des membres de l'équipe
+    const handleOnlineUsers = (users: any[]) => {
+      // Dans un vrai projet on mapperait ces utilisateurs à l'équipe
+      console.log('Online users updated:', users);
+    };
+    on('online_users_update', handleOnlineUsers);
+    return () => off('online_users_update', handleOnlineUsers);
+  }, [on, off]);
 
   useEffect(() => {
     // Simuler le chargement des données agent
@@ -204,13 +222,26 @@ export default function AgentDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Espace Agent
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Gérez vos tickets et collaborez avec l'équipe
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+              Espace Agent
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              Gérez vos tickets et collaborez avec l'équipe
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {isConnected && (
+              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                </span>
+                Agent Connecté
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Statistiques principales */}
@@ -323,14 +354,14 @@ export default function AgentDashboard() {
                           <span className="font-medium">{ticket.id}</span>
                           <h4 className="font-medium">{ticket.subject}</h4>
                           <Badge className={getStatusColor(ticket.status)}>
-                            {ticket.status === 'open' ? 'Ouvert' : 
-                             ticket.status === 'in_progress' ? 'En cours' : 
-                             ticket.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                            {ticket.status === 'open' ? 'Ouvert' :
+                              ticket.status === 'in_progress' ? 'En cours' :
+                                ticket.status === 'resolved' ? 'Résolu' : 'Fermé'}
                           </Badge>
                           <Badge className={getPriorityColor(ticket.priority)}>
-                            {ticket.priority === 'low' ? 'Faible' : 
-                             ticket.priority === 'medium' ? 'Moyen' : 
-                             ticket.priority === 'high' ? 'Élevé' : 'Urgent'}
+                            {ticket.priority === 'low' ? 'Faible' :
+                              ticket.priority === 'medium' ? 'Moyen' :
+                                ticket.priority === 'high' ? 'Élevé' : 'Urgent'}
                           </Badge>
                           {ticket.assignedTo === 'moi' && (
                             <Badge variant="outline">Assigné à moi</Badge>
@@ -401,16 +432,15 @@ export default function AgentDashboard() {
                               <span className="ml-1 font-medium">{member.resolvedToday}</span>
                             </div>
                           </div>
-                          <Badge 
-                            variant="outline" 
-                            className={`mt-1 ${
-                              member.status === 'online' ? 'text-green-600 border-green-600' :
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 ${member.status === 'online' ? 'text-green-600 border-green-600' :
                               member.status === 'busy' ? 'text-yellow-600 border-yellow-600' :
-                              'text-gray-600 border-gray-600'
-                            }`}
+                                'text-gray-600 border-gray-600'
+                              }`}
                           >
-                            {member.status === 'online' ? 'En ligne' : 
-                             member.status === 'busy' ? 'Occupé' : 'Hors ligne'}
+                            {member.status === 'online' ? 'En ligne' :
+                              member.status === 'busy' ? 'Occupé' : 'Hors ligne'}
                           </Badge>
                         </div>
                       </div>
@@ -433,7 +463,7 @@ export default function AgentDashboard() {
                   </div>
                   <Progress value={75} className="h-2" />
                   <p className="text-xs text-muted-foreground">75% de l'objectif quotidien</p>
-                  
+
                   <div className="pt-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Temps de réponse moyen</span>
@@ -528,7 +558,7 @@ export default function AgentDashboard() {
               <div className="lg:col-span-2">
                 <GamificationProfile userId={session?.user?.id || 'demo-user'} />
               </div>
-              
+
               {/* Leaderboard */}
               <div>
                 <Leaderboard userId={session?.user?.id || 'demo-user'} showPeriodSelector={false} />
@@ -541,7 +571,7 @@ export default function AgentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Diagnostic IA */}
               <div>
-                <AIDiagnostic 
+                <AIDiagnostic
                   ticketData={{
                     id: 'TK-001',
                     description: 'Problème de connexion réseau intermittent',
@@ -554,10 +584,10 @@ export default function AgentDashboard() {
                   }}
                 />
               </div>
-              
+
               {/* Formation IA */}
               <div>
-                <AgentTraining 
+                <AgentTraining
                   agentId={session?.user?.id || 'agent_001'}
                   currentTicket={{
                     id: 'TK-001',
@@ -570,7 +600,7 @@ export default function AgentDashboard() {
 
             {/* Réponse automatique */}
             <div>
-              <AutoResponse 
+              <AutoResponse
                 ticketData={{
                   id: 'TK-001',
                   description: 'Problème de connexion réseau intermittent',

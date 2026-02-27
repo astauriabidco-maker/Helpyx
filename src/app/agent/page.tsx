@@ -60,7 +60,7 @@ export default function AgentDashboard() {
   useEffect(() => {
     const currentUser = JWTClient.getUser();
     if (!currentUser || currentUser.role !== 'AGENT') {
-      router.push('/auth/login');
+      router.push('/auth/signin');
       return;
     }
     setUser(currentUser);
@@ -113,7 +113,7 @@ export default function AgentDashboard() {
 
   const handleLogout = async () => {
     await JWTClient.logout();
-    router.push('/auth/login');
+    router.push('/auth/signin');
   };
 
   const getPriorityColor = (priority: string) => {

@@ -316,6 +316,8 @@ async function getCustomerSupportData(customerId: string) {
     openTickets: Math.floor(Math.random() * 3),
     averageResolutionTime: 1 + Math.random() * 3,
     escalationRate: Math.random() * 0.2,
+    tickets: [],
+    interactions: [],
   };
 }
 
@@ -323,6 +325,7 @@ async function getCustomerCRMData(customerId: string) {
   return {
     name: `Customer ${customerId}`,
     email: `customer${customerId}@example.com`,
+    phone: `+33${Math.floor(Math.random() * 900000000 + 100000000)}`,
     company: `Company ${customerId}`,
     segment: ['Enterprise', 'Mid-Market', 'SMB'][Math.floor(Math.random() * 3)],
     status: 'Active',
@@ -330,6 +333,9 @@ async function getCustomerCRMData(customerId: string) {
     deals: [],
     totalDealValue: Math.floor(Math.random() * 500000),
     conversionRate: Math.random() * 0.3,
+    emails: [],
+    calls: [],
+    meetings: [],
   };
 }
 
@@ -355,24 +361,24 @@ async function getCustomerBillingData(customerId: string) {
 }
 
 function calculateRiskLevel(supportData: any, billingData: any, crmData: any): string {
-  const riskScore = (supportData?.escalationRate || 0) * 100 + 
-                    (billingData?.outstandingBalance > 0 ? 20 : 0) +
-                    ((5 - (supportData?.averageSatisfaction || 3)) * 10);
-  
+  const riskScore = (supportData?.escalationRate || 0) * 100 +
+    (billingData?.outstandingBalance > 0 ? 20 : 0) +
+    ((5 - (supportData?.averageSatisfaction || 3)) * 10);
+
   if (riskScore > 70) return 'High';
   if (riskScore > 40) return 'Medium';
   return 'Low';
 }
 
 function calculateChurnProbability(supportData: any, billingData: any): number {
-  return Math.min(0.9, Math.max(0.1, 
-    (supportData?.escalationRate || 0) * 2 + 
+  return Math.min(0.9, Math.max(0.1,
+    (supportData?.escalationRate || 0) * 2 +
     ((5 - (supportData?.averageSatisfaction || 3)) / 5) * 0.3
   ));
 }
 
 function identifyUpsellOpportunities(crmData: any, billingData: any): string[] {
-  const opportunities = [];
+  const opportunities: string[] = [];
   if (billingData?.tier === 'Basic') opportunities.push('Upgrade to Professional');
   if (billingData?.tier === 'Professional') opportunities.push('Upgrade to Enterprise');
   if (crmData?.totalDealValue > 100000) opportunities.push('Premium Support Package');
@@ -380,7 +386,7 @@ function identifyUpsellOpportunities(crmData: any, billingData: any): string[] {
 }
 
 function generateRecommendedActions(supportData: any, crmData: any, billingData: any): string[] {
-  const actions = [];
+  const actions: string[] = [];
   if (supportData?.averageSatisfaction < 4) actions.push('Schedule customer success call');
   if (supportData?.openTickets > 2) actions.push('Prioritize ticket resolution');
   if (billingData?.outstandingBalance > 5000) actions.push('Follow up on payment');

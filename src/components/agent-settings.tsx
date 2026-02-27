@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Palette, 
-  Globe, 
-  Mail, 
-  Phone, 
+import {
+  User,
+  Bell,
+  Shield,
+  Palette,
+  Globe,
+  Mail,
+  Phone,
   Camera,
   Save,
   Eye,
@@ -68,7 +68,7 @@ export default function AgentSettings() {
     customStatus: 'Disponible pour aider'
   });
 
-  const handleInputChange = (field: string, value: string | boolean | string[]) => {
+  const handleInputChange = (field: string, value: string | boolean | string[] | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -162,7 +162,7 @@ export default function AgentSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email professionnel</Label>
                     <div className="relative">
@@ -285,7 +285,7 @@ export default function AgentSettings() {
                             id={day}
                             checked={formData.workingDays.includes(day.toLowerCase())}
                             onCheckedChange={(checked) => {
-                              const days = checked 
+                              const days = checked
                                 ? [...formData.workingDays, day.toLowerCase()]
                                 : formData.workingDays.filter(d => d !== day.toLowerCase());
                               handleInputChange('workingDays', days);
@@ -543,7 +543,7 @@ export default function AgentSettings() {
                         <span className="text-sm">8/10</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{width: '80%'}}></div>
+                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: '80%' }}></div>
                       </div>
                     </div>
                     <div>
@@ -552,7 +552,7 @@ export default function AgentSettings() {
                         <span className="text-sm">4.8/4.5</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full" style={{width: '100%'}}></div>
+                        <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
                       </div>
                     </div>
                     <div>
@@ -561,7 +561,7 @@ export default function AgentSettings() {
                         <span className="text-sm">2.3h/3h</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-yellow-600 h-2 rounded-full" style={{width: '77%'}}></div>
+                        <div className="bg-yellow-600 h-2 rounded-full" style={{ width: '77%' }}></div>
                       </div>
                     </div>
                   </div>

@@ -32,65 +32,34 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== LOGIN DEBUG START ===');
-    
     const body = await request.json();
-    console.log('Request body:', { email: body.email, passwordLength: body.password?.length });
-    
+
     // Validation des données
     const email = loginSchema.email(body.email);
     const password = loginSchema.password(body.password);
-    
-    console.log('Validated data:', { email, passwordLength: password.length });
 
     // Rechercher l'utilisateur
     const user = await db.user.findUnique({
       where: { email }
     });
 
-    console.log('User found:', !!user);
-    if (user) {
-      console.log('User details:', { 
-        id: user.id, 
-        name: user.name, 
-        role: user.role, 
-        hasPassword: !!user.password,
-        isActive: user.isActive 
-      });
-    }
-
-    if (!user) {
-      console.log('❌ User not found');
+    if (!user || !user.password) {
       return NextResponse.json(
         { error: 'Email ou mot de passe incorrect' },
         { status: 401 }
       );
     }
 
-    // Vérifier le mot de passe avec bcrypt
-    let isPasswordValid = false;
-    
-    if (user.password) {
-      // Utiliser bcrypt pour vérifier le mot de passe hashé
-      isPasswordValid = await bcrypt.compare(password, user.password);
-    } else {
-      // Pour compatibilité avec les anciens comptes sans mot de passe hashé
-      isPasswordValid = password === 'password123';
-    }
-    
-    console.log('Password valid:', isPasswordValid);
-    
+    // Vérifier le mot de passe avec bcrypt uniquement - plus de fallback en clair
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
-      console.log('❌ Invalid password');
       return NextResponse.json(
         { error: 'Email ou mot de passe incorrect' },
         { status: 401 }
       );
     }
 
-    // Pour l'instant, retourner une réponse simple sans tokens
-    console.log('✅ Login successful');
-    
     return NextResponse.json({
       message: 'Connexion réussie',
       user: {
@@ -99,19 +68,14 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         emailVerified: user.emailVerified,
-      },
-      debug: {
-        timestamp: new Date().toISOString(),
-        loginMethod: 'simple'
       }
     });
 
   } catch (error) {
-    console.error('❌ Login error:', error);
-    
+    console.error('Login error:', error instanceof Error ? (error as any).message : 'Unknown error');
+
     return NextResponse.json({
-      error: 'Erreur lors de la connexion',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Erreur lors de la connexion'
     }, { status: 500 });
   }
 }

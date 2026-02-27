@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Building2, 
-  Mail, 
-  User, 
-  Phone, 
-  Lock, 
-  CheckCircle, 
+import {
+  Building2,
+  Mail,
+  User,
+  Phone,
+  Lock,
+  CheckCircle,
   AlertCircle,
   ArrowLeft,
   Rocket,
@@ -137,7 +137,7 @@ export default function RegisterPage() {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...prev[section as keyof Omit<FormData, 'entreprise' | 'utilisateur' | 'consentements'>],
+        ...(prev[section] as any),
         [field]: value
       }
     }));
@@ -146,14 +146,14 @@ export default function RegisterPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return formData.entreprise.nom.length >= 2 && 
-               formData.entreprise.secteur !== '' &&
-               formData.entreprise.taille !== '';
+        return formData.entreprise.nom.length >= 2 &&
+          formData.entreprise.secteur !== '' &&
+          formData.entreprise.taille !== '';
       case 2:
         return formData.utilisateur.name.length >= 2 &&
-               formData.utilisateur.email.includes('@') &&
-               formData.utilisateur.password.length >= 8 &&
-               formData.utilisateur.password === formData.utilisateur.confirmPassword;
+          formData.utilisateur.email.includes('@') &&
+          formData.utilisateur.password.length >= 8 &&
+          formData.utilisateur.password === formData.utilisateur.confirmPassword;
       case 3:
         return true; // Le plan est toujours sélectionné
       case 4:
@@ -234,9 +234,8 @@ export default function RegisterPage() {
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                  }`}>
                   {currentStep > step ? (
                     <CheckCircle className="w-5 h-5" />
                   ) : (
@@ -244,9 +243,8 @@ export default function RegisterPage() {
                   )}
                 </div>
                 {step < 4 && (
-                  <div className={`w-full h-1 mx-2 ${
-                    currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-                  }`} />
+                  <div className={`w-full h-1 mx-2 ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                    }`} />
                 )}
               </div>
             ))}
@@ -443,12 +441,12 @@ export default function RegisterPage() {
                       placeholder="Confirmez votre mot de passe"
                       required
                     />
-                    {formData.utilisateur.password !== formData.utilisateur.confirmPassword && 
-                     formData.utilisateur.confirmPassword.length > 0 && (
-                      <p className="text-sm text-red-600 mt-1">
-                        Les mots de passe ne correspondent pas
-                      </p>
-                    )}
+                    {formData.utilisateur.password !== formData.utilisateur.confirmPassword &&
+                      formData.utilisateur.confirmPassword.length > 0 && (
+                        <p className="text-sm text-red-600 mt-1">
+                          Les mots de passe ne correspondent pas
+                        </p>
+                      )}
                   </div>
                 </div>
               )}
@@ -460,11 +458,10 @@ export default function RegisterPage() {
                     {Object.entries(plans).map(([key, plan]) => (
                       <div
                         key={key}
-                        className={`relative rounded-lg border-2 p-6 cursor-pointer transition-all ${
-                          formData.plan === key
+                        className={`relative rounded-lg border-2 p-6 cursor-pointer transition-all ${formData.plan === key
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                          }`}
                         onClick={() => setFormData(prev => ({ ...prev, plan: key as any }))}
                       >
                         {formData.plan === key && (
@@ -472,7 +469,7 @@ export default function RegisterPage() {
                             <CheckCircle className="w-6 h-6" />
                           </div>
                         )}
-                        
+
                         <div className="flex items-center gap-3 mb-4">
                           <div className={`w-12 h-12 rounded-lg ${plan.color} flex items-center justify-center`}>
                             <plan.icon className="w-6 h-6 text-white" />
@@ -485,9 +482,9 @@ export default function RegisterPage() {
                             </p>
                           </div>
                         </div>
-                        
+
                         <p className="text-gray-600 mb-4">{plan.description}</p>
-                        
+
                         <ul className="space-y-2">
                           {plan.features.map((feature, index) => (
                             <li key={index} className="flex items-center gap-2 text-sm">
@@ -510,7 +507,7 @@ export default function RegisterPage() {
                       <Checkbox
                         id="cgu"
                         checked={formData.consentements.cgu}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           updateFormData('consentements', 'cgu', checked)
                         }
                       />
@@ -528,7 +525,7 @@ export default function RegisterPage() {
                       <Checkbox
                         id="donnees"
                         checked={formData.consentements.donnees}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           updateFormData('consentements', 'donnees', checked)
                         }
                       />
@@ -546,7 +543,7 @@ export default function RegisterPage() {
                       <Checkbox
                         id="newsletter"
                         checked={formData.consentements.newsletter}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           updateFormData('consentements', 'newsletter', checked)
                         }
                       />

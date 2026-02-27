@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
+    const {
       planId,
       companyId,
       subscriptionType = 'recurring', // 'recurring' or 'onetime'
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      stripeCustomerId = stripeCustomer.customerId;
+      stripeCustomerId = stripeCustomer.customerId ?? null;
 
       // Mettre à jour l'entreprise avec l'ID client Stripe
       await db.company.update({
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         amount: plan.prixMensuel,
         currency: 'eur',
         interval: 'month',
-        productId: productResult.productId,
+        productId: productResult.productId!,
         metadata: {
           planId: plan.id,
           planName: plan.nom
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      stripePriceId = priceResult.priceId;
+      stripePriceId = priceResult.priceId ?? null;
 
       // Mettre à jour le plan avec l'ID prix Stripe
       await db.plan.update({
@@ -121,58 +121,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // URLs par défaut
-    const defaultSuccessUrl = `${process.env.NEXTAUTH_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`;
-    const defaultCancelUrl = `${process.env.NEXTAUTH_URL}/billing/cancel`;
+    // MOCK STRIPE SIMULATION
+    const mockSessionId = 'cs_test_' + Math.random().toString(36).substring(7);
+    const mockUrl = `/billing/mock-checkout?session_id=${mockSessionId}&planId=${plan.id}&companyId=${company.id}`;
 
-    const finalSuccessUrl = successUrl || defaultSuccessUrl;
-    const finalCancelUrl = cancelUrl || defaultCancelUrl;
-
-    let result;
-
-    if (subscriptionType === 'recurring') {
-      // Créer une session d'abonnement
-      result = await StripeService.createCheckoutSession({
-        customerId: stripeCustomerId,
-        priceId: stripePriceId,
-        successUrl: finalSuccessUrl,
-        cancelUrl: finalCancelUrl,
-        trialPeriodDays,
-        metadata: {
-          planId: plan.id,
-          companyId: company.id,
-          planName: plan.nom,
-          companyName: company.nom
-        }
-      });
-    } else {
-      // Créer une session de paiement unique
-      result = await StripeService.createOneTimeCheckoutSession({
-        customerId: stripeCustomerId,
-        priceId: stripePriceId,
-        successUrl: finalSuccessUrl,
-        cancelUrl: finalCancelUrl,
-        metadata: {
-          planId: plan.id,
-          companyId: company.id,
-          planName: plan.nom,
-          companyName: company.nom
-        }
-      });
-    }
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        sessionId: result.sessionId,
-        url: result.url
-      });
-    } else {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({
+      success: true,
+      sessionId: mockSessionId,
+      url: mockUrl
+    });
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return NextResponse.json(

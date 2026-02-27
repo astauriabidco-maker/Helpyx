@@ -14,7 +14,7 @@ export async function POST() {
       },
       {
         name: "Agent Demo",
-        email: "agent@exemple.com", 
+        email: "agent@exemple.com",
         password: "password123",
         role: "AGENT"
       },
@@ -26,22 +26,22 @@ export async function POST() {
       }
     ];
 
-    const results = [];
-    
+    const results: any[] = [];
+
     for (const userData of demoUsers) {
       // Vérifier si l'utilisateur existe déjà
       const existingUser = await db.user.findUnique({
         where: { email: userData.email }
       });
-      
+
       if (!existingUser) {
-        // Créer l'utilisateur avec le mot de passe en clair pour le MVP
-        // (l'authentification vérifie juste "password123")
+        // Hasher le mot de passe avec bcrypt
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
         const user = await db.user.create({
           data: {
             name: userData.name,
             email: userData.email,
-            password: userData.password, // En clair pour le MVP
+            password: hashedPassword,
             role: userData.role as any
           }
         });
@@ -54,30 +54,39 @@ export async function POST() {
     // Créer quelques tickets de démonstration
     const existingTickets = await db.ticket.count();
     if (existingTickets === 0) {
-      const demoTickets = [
-        {
-          description: "Écran noir sur PC Dell - L'ordinateur s'allume mais l'écran reste noir",
-          status: "ouvert" as const,
-          photoPath: null
-        },
-        {
-          description: "Clavier qui ne répond plus - Certaines touches ne fonctionnent plus",
-          status: "en_cours" as const,
-          photoPath: null
-        },
-        {
-          description: "Connexion Wi-Fi instable - Déconnexions fréquentes",
-          status: "fermé" as const,
-          photoPath: null
-        }
-      ];
+      // Récupérer un utilisateur et une company pour associer les tickets
+      const firstUser = await db.user.findFirst();
+      const firstCompany = await db.company.findFirst();
 
-      for (const ticketData of demoTickets) {
-        await db.ticket.create({
-          data: ticketData
-        });
+      if (firstUser && firstCompany) {
+        const demoTickets = [
+          {
+            description: "Écran noir sur PC Dell - L'ordinateur s'allume mais l'écran reste noir",
+            status: 'OUVERT' as const,
+            companyId: firstCompany.id,
+            userId: firstUser.id,
+          },
+          {
+            description: "Clavier qui ne répond plus - Certaines touches ne fonctionnent plus",
+            status: 'EN_DIAGNOSTIC' as const,
+            companyId: firstCompany.id,
+            userId: firstUser.id,
+          },
+          {
+            description: "Connexion Wi-Fi instable - Déconnexions fréquentes",
+            status: 'FERMÉ' as const,
+            companyId: firstCompany.id,
+            userId: firstUser.id,
+          }
+        ];
+
+        for (const ticketData of demoTickets) {
+          await db.ticket.create({
+            data: ticketData
+          });
+        }
+        results.push({ action: "created", item: "demo tickets" });
       }
-      results.push({ action: "created", item: "demo tickets" });
     }
 
     return NextResponse.json({

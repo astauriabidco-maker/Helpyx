@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 // Helper function to get user company from session
 async function getUserCompany(request: NextRequest) {
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const autoOrders = [];
+    const autoOrders: any[] = [];
     
     for (const item of lowStockItems) {
       // Vérifier s'il y a déjà une commande en cours
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         
         try {
           // Utiliser l'IA pour optimiser la commande
-          const zai = await ZAI.create();
+          const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
           
           const optimization = await zai.chat.completions.create({
             messages: [

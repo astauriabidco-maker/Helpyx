@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     // Analyse comportementale
     const frustrationAnalysis = await detector.detectFrustration(userId, indicators);
     const urgencyAnalysis = await detector.detectUrgency(userId, indicators);
-    
-    let learningStyleAnalysis = null;
+
+    let learningStyleAnalysis: any = null;
     if (messages && messages.length > 0) {
       learningStyleAnalysis = await detector.detectLearningStyle(userId, messages);
     }
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
 
     // Calcul du score de confiance global
     const globalConfidence = (
-      frustrationAnalysis.confidence + 
-      urgencyAnalysis.confidence + 
+      frustrationAnalysis.confidence +
+      urgencyAnalysis.confidence +
       (learningStyleAnalysis?.confidence || 0)
     ) / (learningStyleAnalysis ? 3 : 2);
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 }
 
 function generateRecommendations(frustrationAnalysis: any, urgencyAnalysis: any, learningStyleAnalysis: any): string[] {
-  const recommendations = [];
+  const recommendations: string[] = [];
 
   // Recommandations basées sur la frustration
   if (frustrationAnalysis.isFrustrated) {

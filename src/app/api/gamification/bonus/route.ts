@@ -1,35 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GamificationService } from '@/lib/gamification';
+import { requireTenant } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, type } = await request.json();
+    // Multi-tenant: auth requise
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
+    const userId = ctx.user.id;
+    const { type } = await request.json();
 
     let result;
 
     switch (type) {
       case 'daily':
         result = await GamificationService.claimDailyBonus(userId);
-        return NextResponse.json({ 
-          success: result, 
+        return NextResponse.json({
+          success: result,
           message: result ? 'Bonus quotidien réclamé!' : 'Bonus déjà réclamé aujourd\'hui'
         });
-      
+
       case 'streak':
         const streak = await GamificationService.updateStreak(userId);
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           streak,
           message: `Streak mis à jour: ${streak} jours`
         });
-      
+
       default:
         return NextResponse.json(
           { error: 'Invalid bonus type' },

@@ -10,13 +10,13 @@ export async function GET(
     const resolvedParams = await params;
     const filename = resolvedParams.filename.join('/');
     const filepath = path.join(process.cwd(), 'public', filename);
-    
+
     const imageBuffer = await readFile(filepath);
-    
+
     // Déterminer le type MIME basé sur l'extension
     const ext = filename.split('.').pop()?.toLowerCase();
     let contentType = 'image/jpeg';
-    
+
     switch (ext) {
       case 'png':
         contentType = 'image/png';
@@ -33,7 +33,7 @@ export async function GET(
         break;
     }
 
-    return new NextResponse(imageBuffer, {
+    return new NextResponse(new Uint8Array(imageBuffer), {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000', // Cache pour 1 an

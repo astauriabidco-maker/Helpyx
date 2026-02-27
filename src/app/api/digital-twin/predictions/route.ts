@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
+
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { equipmentId, equipmentData } = body
-    
+
     // Utiliser ZAI pour des prédictions plus intelligentes
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
     const zai = await ZAI.create()
-    
+
     const prompt = `En tant qu'expert en maintenance prédictive et analyse de données IoT, analyse les données suivantes d'un équipement informatique et fournis des prédictions détaillées:
 
 Équipement: ${equipmentData.name}
@@ -53,7 +54,7 @@ Réponds au format JSON structuré avec ces champs exacts:
     })
 
     const aiResponse = completion.choices[0]?.message?.content
-    
+
     if (!aiResponse) {
       throw new Error('No response from AI')
     }
@@ -86,10 +87,10 @@ Réponds au format JSON structuré avec ces champs exacts:
     return NextResponse.json(enhancedPredictions)
   } catch (error) {
     console.error('Error generating predictions:', error)
-    
+
     // Fallback basique en cas d'erreur
     const fallbackPredictions = {
-      equipmentId: body.equipmentId,
+      equipmentId: 'unknown',
       timestamp: new Date().toISOString(),
       failureProbability: 25,
       timeframe: '30 jours',

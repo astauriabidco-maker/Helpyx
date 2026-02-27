@@ -4,21 +4,21 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { sendTicketNotification } from '@/lib/email';
+import { EmailService } from '@/lib/email';
 import { onTicketCreated } from '@/lib/workflows';
+import { notifyTicketCreated } from '@/lib/notifications';
+import { requireTenant, getTicketVisibilityFilter } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('=== GET /api/tickets - DÉBUT TRAITEMENT ===');
-    
     // Récupérer les paramètres de recherche et filtres
     const { searchParams } = new URL(request.url);
-    
+
     // Paramètres de pagination
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
-    
+
     // Paramètres de filtre
     const status = searchParams.get('status');
     const categorie = searchParams.get('categorie');
@@ -29,106 +29,41 @@ export async function GET(request: NextRequest) {
     const dateDebut = searchParams.get('dateDebut');
     const dateFin = searchParams.get('dateFin');
     const recherche = searchParams.get('recherche');
-    
+
     // Paramètres de tri
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
-    
-    // Récupérer les informations pour le débogage
-    const host = process.env.VERCEL_URL || 'localhost';
-    const vercelEnv = process.env.VERCEL_ENV || '';
-    const nodeEnv = process.env.NODE_ENV || '';
-    
-    console.log('Host:', host);
-    console.log('VERCEL_ENV:', vercelEnv);
-    console.log('NODE_ENV:', nodeEnv);
-    console.log('Paramètres recherche:', { status, categorie, priorite, recherche, page, limit });
-    
-    // FORCER LE BYPASS POUR TOUT PENDANT LE DÉVELOPPEMENT
-    const BYPASS_AUTH = true; // FORCÉ À TRUE
-    
-    console.log('=== GET /api/tickets - BYPASS AUTH ===');
-    console.log('BYPASS_AUTH:', BYPASS_AUTH);
-    
-    let session = null;
-    let user = null;
-    
-    if (BYPASS_AUTH) {
-      console.log('🚀 GET BYPASS AUTH ACTIVÉ - Utilisation utilisateur automatique');
-      
-      // Mode bypass - utiliser un utilisateur par défaut
-      user = await db.user.findFirst({
-        where: { role: 'CLIENT' }
-      });
-      
-      if (!user) {
-        console.log('📝 Création utilisateur par défaut pour GET...');
-        user = await db.user.create({
-          data: {
-            email: 'preview-user@example.com',
-            name: 'Preview User',
-            role: 'CLIENT'
-          }
-        });
-        console.log('✅ Utilisateur créé pour GET:', user.id);
-      } else {
-        console.log('✅ Utilisateur existant trouvé pour GET:', user.id);
-      }
-    } else {
-      console.log('🔐 GET MODE AUTHENTIFICATION NORMAL');
-      // Mode normal - authentification
-      session = await getServerSession(authOptions);
-      
-      if (!session) {
-        console.log('❌ GET Aucune session trouvée - 401');
-        return NextResponse.json(
-          { error: 'Non autorisé' },
-          { status: 401 }
-        );
-      }
-      
-      user = await db.user.findUnique({
-        where: { id: session.user.id }
-      });
-    }
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Utilisateur non trouvé' },
-        { status: 404 }
-      );
-    }
+    // Multi-tenant: auth + isolation par entreprise
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+    const { user, companyId } = ctx;
 
-    // Construire la clause WHERE pour les filtres
-    const where: any = {};
-    
-    // Si ce n'est pas un admin/agent, ne montrer que les tickets de l'utilisateur
-    if (user.role === 'CLIENT') {
-      where.userId = user.id;
-    }
-    
+    // Construire la clause WHERE — TOUJOURS filtré par companyId + rôle
+    const where: any = getTicketVisibilityFilter(user);
+
     // Filtres de statut
     if (status) {
       const statusValues = status.split(',');
       where.status = { in: statusValues };
     }
-    
+
     // Filtre de catégorie
     if (categorie) {
       where.categorie = { contains: categorie };
     }
-    
+
     // Filtre de priorité
     if (priorite) {
       const prioriteValues = priorite.split(',');
       where.priorite = { in: prioriteValues };
     }
-    
+
     // Filtre de type de panne
     if (type_panne) {
       where.type_panne = { in: type_panne.split(',') };
     }
-    
+
     // Filtre d'assignation
     if (assignedTo) {
       if (assignedTo === 'unassigned') {
@@ -137,12 +72,12 @@ export async function GET(request: NextRequest) {
         where.assignedToId = assignedTo;
       }
     }
-    
+
     // Filtre par tags
     if (tag) {
       where.tags = { contains: tag };
     }
-    
+
     // Filtre par plage de dates
     if (dateDebut || dateFin) {
       where.createdAt = {};
@@ -153,7 +88,7 @@ export async function GET(request: NextRequest) {
         where.createdAt.lte = new Date(dateFin);
       }
     }
-    
+
     // Recherche textuelle
     if (recherche) {
       where.OR = [
@@ -284,107 +219,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== POST /api/tickets - DÉBUT TRAITEMENT ===');
-    
-    // Récupérer TOUTES les informations possibles pour le débogage
-    const url = request.url;
-    const host = request.headers.get('host') || '';
-    const referer = request.headers.get('referer') || '';
-    const userAgent = request.headers.get('user-agent') || '';
-    const forwardedHost = request.headers.get('x-forwarded-host') || '';
-    const forwardedFor = request.headers.get('x-forwarded-for') || '';
-    const vercelEnv = process.env.VERCEL_ENV || '';
-    const vercelUrl = process.env.VERCEL_URL || '';
-    const nodeEnv = process.env.NODE_ENV || '';
-    
-    console.log('URL complète:', url);
-    console.log('Host:', host);
-    console.log('Forwarded Host:', forwardedHost);
-    console.log('Forwarded For:', forwardedFor);
-    console.log('Referer:', referer);
-    console.log('User Agent:', userAgent);
-    console.log('VERCEL_ENV:', vercelEnv);
-    console.log('VERCEL_URL:', vercelUrl);
-    console.log('NODE_ENV:', nodeEnv);
-    
-    // DÉTECTION SIMPLIFIÉE : Si c'est Vercel Preview OU localhost, on bypass
-    const isVercelPreview = vercelEnv === 'preview' || 
-                           host.includes('preview-chat-') || 
-                           host.includes('space.z.ai') ||
-                           forwardedHost.includes('preview-chat-') ||
-                           forwardedHost.includes('space.z.ai') ||
-                           url.includes('space.z.ai') ||
-                           referer.includes('space.z.ai');
-    
-    const isLocalDev = host.includes('localhost') || host.includes('127.0.0.1');
-    
-    // FORCER LE BYPASS pour TOUS les environnements de test
-    // POUR L'INSTANT, ON BYPASS TOUT POUR QUE ÇA FONCTIONNE
-    const BYPASS_AUTH = true; // FORCÉ À TRUE POUR RÉSOUDRE LE PROBLÈME
-    
-    console.log('=== DÉTECTION ENVIRONNEMENT ===');
-    console.log('isVercelPreview:', isVercelPreview);
-    console.log('isLocalDev:', isLocalDev);
-    console.log('BYPASS_AUTH:', BYPASS_AUTH);
-    console.log('=== FIN DÉTECTION ===');
-    
-    let session = null;
-    let user = null;
-    
-    if (BYPASS_AUTH) {
-      console.log('🚀 BYPASS AUTH ACTIVÉ - Création utilisateur automatique');
-      
-      // Mode bypass - utiliser un utilisateur par défaut
-      user = await db.user.findFirst({
-        where: { role: 'CLIENT' }
-      });
-      
-      if (!user) {
-        console.log('📝 Création utilisateur par défaut...');
-        user = await db.user.create({
-          data: {
-            email: 'preview-user@example.com',
-            name: 'Preview User',
-            role: 'CLIENT'
-          }
-        });
-        console.log('✅ Utilisateur créé:', user.id);
-      } else {
-        console.log('✅ Utilisateur existant trouvé:', user.id);
-      }
-    } else {
-      console.log('🔐 MODE AUTHENTIFICATION NORMAL');
-      // Mode normal - authentification
-      session = await getServerSession(authOptions);
-      
-      if (!session) {
-        console.log('❌ Aucune session trouvée - 401');
-        return NextResponse.json(
-          { error: 'Non autorisé - Aucune session' },
-          { status: 401 }
-        );
-      }
-
-      // Seuls les clients peuvent créer des tickets
-      if (session.user.role !== 'CLIENT') {
-        console.log('❌ Rôle incorrect:', session.user.role);
-        return NextResponse.json(
-          { error: 'Seuls les clients peuvent créer des tickets' },
-          { status: 403 }
-        );
-      }
-      
-      user = await db.user.findUnique({
-        where: { id: session.user.id }
-      });
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Utilisateur non trouvé' },
-        { status: 404 }
-      );
-    }
+    // Multi-tenant: auth + companyId obligatoire
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+    const { user, companyId } = ctx;
 
     const formData = await request.formData();
     const description = formData.get('description') as string;
@@ -397,14 +235,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let photoPath = null;
-    
+    let photoPath: string | null = null;
+
     if (photo && photo.size > 0) {
       // Créer le dossier uploads s'il n'existe pas
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
       try {
         await mkdir(uploadsDir, { recursive: true });
-      } catch (error) {
+      } catch {
         // Le dossier existe déjà
       }
 
@@ -418,7 +256,7 @@ export async function POST(request: NextRequest) {
       const bytes = await photo.arrayBuffer();
       const buffer = Buffer.from(bytes);
       await writeFile(filepath, buffer);
-      
+
       photoPath = `uploads/${filename}`;
     }
 
@@ -426,10 +264,11 @@ export async function POST(request: NextRequest) {
     const ticket = await db.ticket.create({
       data: {
         description: description.trim(),
-        status: 'ouvert',
-        photoPath: photoPath,
-        userId: user.id
-      },
+        status: 'OUVERT',
+        photoPath: photoPath || undefined,
+        userId: user.id,
+        companyId, // Multi-tenant: forcé à l'entreprise de l'utilisateur
+      } as any,
       include: {
         user: {
           select: {
@@ -445,36 +284,46 @@ export async function POST(request: NextRequest) {
       await onTicketCreated(ticket);
     } catch (workflowError) {
       console.error('Erreur workflow création ticket:', workflowError);
-      // Ne pas bloquer la réponse si le workflow échoue
     }
 
-    // Envoyer une notification email aux agents (seulement en mode normal)
-    if (!BYPASS_AUTH) {
-      try {
-        // Récupérer tous les agents et admins
-        const agents = await db.user.findMany({
-          where: {
-            role: {
-              in: ['AGENT', 'ADMIN']
-            }
-          }
-        });
+    // Créer des notifications in-app pour les agents/admins
+    try {
+      await notifyTicketCreated({
+        id: ticket.id,
+        titre: (ticket as any).titre || description.substring(0, 50),
+        userId: user.id,
+        companyId,
+      });
+    } catch (notifError) {
+      console.error('Erreur notification création ticket:', notifError);
+    }
 
-        // Envoyer un email à chaque agent
-        for (const agent of agents) {
-          await sendTicketNotification(
-            agent.email,
-            ticket.id,
-            ticket.status,
-            user.name || 'Client',
-            description,
-            'created'
-          );
+    // Envoyer les notifications email aux agents
+    try {
+      // Multi-tenant: notifier uniquement les agents de la même entreprise
+      const agents = await db.user.findMany({
+        where: {
+          companyId,
+          role: {
+            in: ['AGENT', 'ADMIN']
+          }
         }
-      } catch (emailError) {
-        console.error('Erreur envoi notifications email:', emailError);
-        // Ne pas bloquer la réponse si l'email échoue
+      });
+
+      for (const agent of agents) {
+        await EmailService.sendTicketNotification(
+          agent.email,
+          {
+            id: ticket.id,
+            status: ticket.status,
+            description: description,
+            userName: user.name || 'Client'
+          },
+          'created'
+        );
       }
+    } catch (emailError) {
+      console.error('Erreur envoi notifications email:', emailError);
     }
 
     return NextResponse.json({

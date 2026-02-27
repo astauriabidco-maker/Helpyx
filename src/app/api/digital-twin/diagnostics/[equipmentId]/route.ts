@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { equipmentId: string } }
+  { params }: { params: Promise<{ equipmentId: string }> }
 ) {
   try {
-    const { equipmentId } = params
+    const { equipmentId } = await params;
     
     // Simuler un diagnostic complet avec l'IA
     const diagnosticResults = {

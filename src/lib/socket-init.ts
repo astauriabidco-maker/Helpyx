@@ -18,7 +18,7 @@ export const initSocket = (server: NetServer) => {
       addTrailingSlash: false,
       transports: ['polling', 'websocket'],
       cors: {
-        origin: "*",
+        origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
         methods: ["GET", "POST"]
       },
       pingTimeout: 60000,
@@ -27,7 +27,7 @@ export const initSocket = (server: NetServer) => {
 
     setupSocket(io);
     setServer(io);
-    
+
     console.log('Socket.io server initialized successfully');
     return io;
   } catch (error) {

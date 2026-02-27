@@ -4,24 +4,27 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/notification-bell'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
+  LogOut,
   Menu,
   Home,
   ChevronLeft,
-  Brain
+  Brain,
+  Package,
+  BookOpen
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -40,6 +43,16 @@ const adminNavItems = [
     title: 'Tickets',
     href: '/admin/tickets',
     icon: FileText
+  },
+  {
+    title: 'Inventaire',
+    href: '/inventory',
+    icon: Package
+  },
+  {
+    title: 'Articles KB',
+    href: '/admin/articles',
+    icon: BookOpen
   },
   {
     title: 'Knowledge Graph',
@@ -90,11 +103,10 @@ export function AdminHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive(item.href)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(item.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.title}</span>
@@ -113,6 +125,9 @@ export function AdminHeader() {
                 <span>Retour au site</span>
               </Button>
             </Link>
+
+            {/* Notifications */}
+            <NotificationBell />
 
             {/* Menu utilisateur */}
             <DropdownMenu>
@@ -159,7 +174,7 @@ export function AdminHeader() {
                     <span>Retour au site</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="flex items-center space-x-2 text-red-600"
                   onClick={handleSignOut}
                 >
@@ -191,11 +206,10 @@ export function AdminHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive(item.href)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(item.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Icon className="h-4 w-4" />

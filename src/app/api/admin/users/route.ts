@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { requireTenant } from '@/lib/tenant';
 
-// GET - Récupérer tous les utilisateurs avec filtres
+// GET - Récupérer les utilisateurs de l'entreprise (admin/agent uniquement)
 export async function GET(request: NextRequest) {
   try {
+    // Multi-tenant: auth + isolation par entreprise
+    const [ctx, errorResponse] = await requireTenant({ requireRole: ['ADMIN', 'AGENT'] });
+    if (errorResponse) return errorResponse;
+    const { companyId } = ctx;
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role') || '';
     const status = searchParams.get('status') || '';
-    const companyId = searchParams.get('companyId') || '';
 
     const skip = (page - 1) * limit;
 
-    // Construire les filtres
-    const where: any = {};
-    
+    // Construire les filtres — TOUJOURS filtré par companyId
+    const where: any = { companyId };
+
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search } },
+        { email: { contains: search } }
       ];
     }
 
@@ -35,20 +40,25 @@ export async function GET(request: NextRequest) {
       where.isActive = false;
     }
 
-    if (companyId) {
-      where.companyId = companyId;
-    }
-
     const [users, total] = await Promise.all([
       db.user.findMany({
         where,
         skip,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          phone: true,
+          isActive: true,
+          createdAt: true,
+          lastLoginAt: true,
+          companyId: true,
           company: {
             select: {
               id: true,
-              name: true,
+              nom: true,
               slug: true
             }
           },
@@ -82,11 +92,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Créer un nouvel utilisateur
+// POST - Créer un nouvel utilisateur dans l'entreprise
 export async function POST(request: NextRequest) {
   try {
+    // Multi-tenant: seul un admin peut créer des utilisateurs
+    const [ctx, errorResponse] = await requireTenant({ requireRole: ['ADMIN'] });
+    if (errorResponse) return errorResponse;
+    const { companyId } = ctx;
+
     const body = await request.json();
-    const { name, email, password, role, companyId, phone } = body;
+    const { name, email, password, role, phone } = body;
 
     // Validation
     if (!name || !email || !password || !role) {
@@ -111,33 +126,38 @@ export async function POST(request: NextRequest) {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Créer l'utilisateur
+    // Créer l'utilisateur — TOUJOURS dans l'entreprise de l'admin connecté
     const user = await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role,
-        companyId: companyId || null,
+        companyId, // Forcé à l'entreprise du créateur
         phone: phone || null,
         isActive: true,
         emailVerified: new Date()
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone: true,
+        isActive: true,
+        createdAt: true,
+        companyId: true,
         company: {
           select: {
             id: true,
-            name: true,
+            nom: true,
             slug: true
           }
         }
       }
     });
 
-    // Retourner l'utilisateur sans le mot de passe
-    const { password: _, ...userWithoutPassword } = user;
-    
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    return NextResponse.json(user, { status: 201 });
   } catch (error) {
     console.error('Error creating user:', error);
     return NextResponse.json(

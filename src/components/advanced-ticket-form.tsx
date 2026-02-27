@@ -12,15 +12,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Upload, 
-  Camera, 
-  FileText, 
-  Monitor, 
-  Cpu, 
-  HardDrive, 
-  Wifi, 
-  Printer, 
+import {
+  Upload,
+  Camera,
+  FileText,
+  Monitor,
+  Cpu,
+  HardDrive,
+  Wifi,
+  Printer,
   Smartphone,
   Laptop,
   Server,
@@ -62,7 +62,7 @@ interface TicketFormData {
   categorie: string;
   priorite: string;
   type_panne: 'hardware' | 'software';
-  
+
   // Informations sur l'équipement
   equipement_type: string;
   marque: string;
@@ -72,7 +72,7 @@ interface TicketFormData {
   date_achat: string;
   garantie: boolean;
   fin_garantie: string;
-  
+
   // Détails techniques
   systeme_exploitation: string;
   version_os: string;
@@ -81,7 +81,7 @@ interface TicketFormData {
   stockage: string;
   reseau: string;
   logiciels_concernes: string[];
-  
+
   // Localisation et contact
   site: string;
   batiment: string;
@@ -89,23 +89,23 @@ interface TicketFormData {
   bureau: string;
   telephone_contact: string;
   email_contact: string;
-  
+
   // Diagnostic initial
   symptomes: string[];
   messages_erreur: string[];
   etapes_reproduire: string;
   solutions_testees: string;
-  
+
   // Impact et urgence
   impact_travail: string;
   utilisateurs_affectes: string;
   date_limite: string;
   acces_distant: boolean;
-  
+
   // Fichiers joints
   fichiers: File[];
   screenshots: File[];
-  
+
   // Consentement
   consentement_donnees: boolean;
   notification_email: boolean;
@@ -122,14 +122,14 @@ interface EquipmentTemplate {
 export default function AdvancedTicketForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState<TicketFormData>({
     titre: '',
     description: '',
     categorie: '',
     priorite: 'moyenne',
     type_panne: 'hardware',
-    
+
     equipement_type: '',
     marque: '',
     modele: '',
@@ -138,7 +138,7 @@ export default function AdvancedTicketForm() {
     date_achat: '',
     garantie: false,
     fin_garantie: '',
-    
+
     systeme_exploitation: '',
     version_os: '',
     ram: '',
@@ -146,27 +146,27 @@ export default function AdvancedTicketForm() {
     stockage: '',
     reseau: '',
     logiciels_concernes: [],
-    
+
     site: '',
     batiment: '',
     etage: '',
     bureau: '',
     telephone_contact: '',
     email_contact: '',
-    
+
     symptomes: [],
     messages_erreur: [],
     etapes_reproduire: '',
     solutions_testees: '',
-    
+
     impact_travail: '',
     utilisateurs_affectes: '',
     date_limite: '',
     acces_distant: false,
-    
+
     fichiers: [],
     screenshots: [],
-    
+
     consentement_donnees: false,
     notification_email: true,
     notification_sms: false
@@ -261,8 +261,8 @@ export default function AdvancedTicketForm() {
 
   const generateSuggestions = () => {
     const keywords = formData.description.toLowerCase();
-    const suggestions = [];
-    
+    const suggestions: string[] = [];
+
     if (keywords.includes('écran') || keywords.includes('affichage')) {
       suggestions.push('Vérifier les pilotes graphiques', 'Tester avec un autre moniteur');
     }
@@ -272,7 +272,7 @@ export default function AdvancedTicketForm() {
     if (keywords.includes('réseau') || keywords.includes('connexion')) {
       suggestions.push('Tester la connexion', 'Vérifier les paramètres IP', 'Redémarrer le routeur');
     }
-    
+
     setSuggestions(suggestions);
   };
 
@@ -295,7 +295,7 @@ export default function AdvancedTicketForm() {
 
       // Préparation des données pour l'API
       const ticketData = new FormData();
-      
+
       // Ajout de tous les champs du formulaire
       Object.keys(formData).forEach(key => {
         const value = formData[key as keyof TicketFormData];
@@ -323,7 +323,7 @@ export default function AdvancedTicketForm() {
       if (response.ok) {
         const result = await response.json();
         console.log('Ticket créé avec succès:', result);
-        
+
         // Réinitialiser le formulaire
         setFormData({
           titre: '',
@@ -442,7 +442,7 @@ export default function AdvancedTicketForm() {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="priorite">Priorité *</Label>
                     <Select value={formData.priorite} onValueChange={(value) => handleInputChange('priorite', value)}>
@@ -630,7 +630,7 @@ export default function AdvancedTicketForm() {
                       placeholder="ex: Dell, HP, Lenovo, Apple..."
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="modele">Modèle *</Label>
                     <Input
@@ -656,7 +656,7 @@ export default function AdvancedTicketForm() {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="numero_inventaire">Numéro d'inventaire</Label>
                     <Input
@@ -678,7 +678,7 @@ export default function AdvancedTicketForm() {
                       onChange={(e) => handleInputChange('date_achat', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="fin_garantie">Fin de garantie</Label>
                     <Input
@@ -688,7 +688,7 @@ export default function AdvancedTicketForm() {
                       onChange={(e) => handleInputChange('fin_garantie', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 pt-6">
                     <Checkbox
                       id="garantie"
@@ -718,7 +718,7 @@ export default function AdvancedTicketForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="version_os">Version</Label>
                       <Input
@@ -728,7 +728,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: Windows 11 Pro, macOS Sonoma 14.0"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="processeur">Processeur</Label>
                       <Input
@@ -738,7 +738,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: Intel Core i7-12700K, Apple M2 Pro"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="ram">Mémoire RAM</Label>
                       <Input
@@ -748,7 +748,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: 16GB DDR4, 32GB LPDDR5"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="stockage">Stockage</Label>
                       <Input
@@ -758,7 +758,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: 512GB NVMe SSD, 1TB HDD"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="reseau">Réseau</Label>
                       <Select value={formData.reseau} onValueChange={(value) => handleInputChange('reseau', value)}>
@@ -1006,7 +1006,7 @@ export default function AdvancedTicketForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="batiment">Bâtiment</Label>
                       <Input
@@ -1016,7 +1016,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: A, B, C..."
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="etage">Étage</Label>
                       <Input
@@ -1026,7 +1026,7 @@ export default function AdvancedTicketForm() {
                         placeholder="ex: RDC, 1er, 2ème..."
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="bureau">Bureau / Local</Label>
                       <Input
@@ -1058,7 +1058,7 @@ export default function AdvancedTicketForm() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="email_contact" className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
@@ -1091,7 +1091,7 @@ export default function AdvancedTicketForm() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="utilisateurs_affectes">Utilisateurs affectés</Label>
                       <Input
@@ -1101,7 +1101,7 @@ export default function AdvancedTicketForm() {
                         placeholder="Nombre de personnes affectées ou noms/départements"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="date_limite">Date limite de résolution</Label>
                       <Input
@@ -1111,7 +1111,7 @@ export default function AdvancedTicketForm() {
                         onChange={(e) => handleInputChange('date_limite', e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="acces_distant"
@@ -1225,7 +1225,7 @@ export default function AdvancedTicketForm() {
                         className="mt-1"
                       />
                       <Label htmlFor="consentement_donnees" className="text-sm leading-relaxed">
-                        Je consens au traitement de mes données personnelles dans le cadre de la gestion de ce ticket de support. 
+                        Je consens au traitement de mes données personnelles dans le cadre de la gestion de ce ticket de support.
                         J'accepte que les informations fournies soient utilisées pour diagnostiquer et résoudre le problème signalé.
                       </Label>
                     </div>
@@ -1256,7 +1256,7 @@ export default function AdvancedTicketForm() {
             >
               Précédent
             </Button>
-            
+
             <div className="flex gap-2">
               {currentStep < totalSteps ? (
                 <Button

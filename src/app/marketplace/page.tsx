@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, MapPin, Clock, DollarSign, Search, Filter, User, Briefcase, TrendingUp, Award, Calendar, ChevronRight, Users } from 'lucide-react';
-import { Header } from '@/components/header';
+import { AppShell } from '@/components/app-shell';
 
 interface Expert {
   id: string;
@@ -238,12 +238,14 @@ export default function MarketplacePage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Chargement...</p>
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -252,316 +254,312 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header companyName="TechSupport" />
-      
-      <main className="container px-4 py-8 md:px-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">
-              Marketplace d'Expertise
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Connectez-vous avec des experts qualifiés pour vos projets techniques
-            </p>
-          </div>
+    <AppShell>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Marketplace d'Expertise
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Connectez-vous avec des experts qualifiés pour vos projets techniques
+          </p>
+        </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/marketplace/expert-profile">
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-                <User className="w-4 h-4 mr-2" />
-                Devenir Expert
-              </Button>
-            </Link>
-            <Link href="/marketplace/post-gig">
-              <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Publier un Projet
-              </Button>
-            </Link>
-            <Link href="/marketplace/my-gigs">
-              <Button variant="outline">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Mes Projets
-              </Button>
-            </Link>
-          </div>
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Link href="/marketplace/expert-profile">
+            <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+              <User className="w-4 h-4 mr-2" />
+              Devenir Expert
+            </Button>
+          </Link>
+          <Link href="/marketplace/post-gig">
+            <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Publier un Projet
+            </Button>
+          </Link>
+          <Link href="/marketplace/my-gigs">
+            <Button variant="outline">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Mes Projets
+            </Button>
+          </Link>
+        </div>
 
-          {/* Search and Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Recherche et Filtres
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {activeTab === 'experts' && (
-                  <>
-                    <Select value={selectedRating} onValueChange={setSelectedRating}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Note minimale" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Toutes les notes</SelectItem>
-                        <SelectItem value="4">4+ étoiles</SelectItem>
-                        <SelectItem value="4.5">4.5+ étoiles</SelectItem>
-                        <SelectItem value="5">5 étoiles</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="verified"
-                        checked={verifiedOnly}
-                        onChange={(e) => setVerifiedOnly(e.target.checked)}
-                        className="rounded"
-                      />
-                      <label htmlFor="verified" className="text-sm">
-                        Vérifiés uniquement
-                      </label>
-                    </div>
-                  </>
-                )}
-
-                <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Fourchette de prix" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {priceRanges.map(range => (
-                      <SelectItem key={range.value} value={range.value}>
-                        {range.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* Search and Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Recherche et Filtres
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Main Content */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="experts" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Experts ({experts.length})
-              </TabsTrigger>
-              <TabsTrigger value="gigs" className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                Projets ({gigs.length})
-              </TabsTrigger>
-            </TabsList>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <TabsContent value="experts" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {experts.map((expert) => (
-                  <Card key={expert.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage src={expert.profile.avatar} alt={expert.profile.firstName} />
-                            <AvatarFallback>
-                              {expert.profile.firstName.charAt(0)}{expert.profile.lastName.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-semibold">
-                              {expert.profile.firstName} {expert.profile.lastName}
-                            </h3>
-                            <div className="flex items-center gap-1">
-                              {renderStars(expert.stats.averageRating)}
-                              <span className="text-sm text-muted-foreground">
-                                ({expert.stats.totalReviews})
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {expert.verification.isVerified && (
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                            <Award className="w-3 h-3 mr-1" />
-                            Vérifié
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {expert.profile.bio}
-                      </p>
-                      
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        {expert.profile.location}
-                      </div>
+              {activeTab === 'experts' && (
+                <>
+                  <Select value={selectedRating} onValueChange={setSelectedRating}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Note minimale" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes les notes</SelectItem>
+                      <SelectItem value="4">4+ étoiles</SelectItem>
+                      <SelectItem value="4.5">4.5+ étoiles</SelectItem>
+                      <SelectItem value="5">5 étoiles</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        Réponse en {expert.availability.responseTime}h
-                      </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="verified"
+                      checked={verifiedOnly}
+                      onChange={(e) => setVerifiedOnly(e.target.checked)}
+                      className="rounded"
+                    />
+                    <label htmlFor="verified" className="text-sm">
+                      Vérifiés uniquement
+                    </label>
+                  </div>
+                </>
+              )}
 
-                      <div className="flex items-center gap-2 text-sm">
-                        <DollarSign className="w-4 h-4" />
-                        {expert.pricing.minimumGigPrice}€ - {expert.pricing.maximumGigPrice}€
-                      </div>
+              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Fourchette de prix" />
+                </SelectTrigger>
+                <SelectContent>
+                  {priceRanges.map(range => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {expert.expertise.category}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {expert.expertise.yearsExperience} ans d'expérience
-                        </Badge>
-                      </div>
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="experts" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Experts ({experts.length})
+            </TabsTrigger>
+            <TabsTrigger value="gigs" className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Projets ({gigs.length})
+            </TabsTrigger>
+          </TabsList>
 
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-center p-2 bg-gray-50 rounded">
-                          <div className="font-semibold">{expert.stats.completedGigs}</div>
-                          <div className="text-muted-foreground">Projets</div>
-                        </div>
-                        <div className="text-center p-2 bg-gray-50 rounded">
-                          <div className="font-semibold">{Math.round(expert.stats.successRate * 100)}%</div>
-                          <div className="text-muted-foreground">Succès</div>
-                        </div>
-                      </div>
-
-                      <Link href={`/marketplace/expert/${expert.id}`}>
-                        <Button className="w-full">
-                          Voir le profil
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="gigs" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gigs.map((gig) => (
-                  <Card key={gig.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
+          <TabsContent value="experts" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {experts.map((expert) => (
+                <Card key={expert.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={expert.profile.avatar} alt={expert.profile.firstName} />
+                          <AvatarFallback>
+                            {expert.profile.firstName.charAt(0)}{expert.profile.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
-                          <h3 className="font-semibold line-clamp-2">{gig.title}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src={gig.client.avatar} alt={gig.client.name} />
-                              <AvatarFallback className="text-xs">
-                                {gig.client.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
+                          <h3 className="font-semibold">
+                            {expert.profile.firstName} {expert.profile.lastName}
+                          </h3>
+                          <div className="flex items-center gap-1">
+                            {renderStars(expert.stats.averageRating)}
                             <span className="text-sm text-muted-foreground">
-                              {gig.client.name}
+                              ({expert.stats.totalReviews})
                             </span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-lg">{gig.price}€</div>
-                          <div className="text-sm text-muted-foreground">
-                            {gig.estimatedDuration}min
-                          </div>
+                      </div>
+                      {expert.verification.isVerified && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          <Award className="w-3 h-3 mr-1" />
+                          Vérifié
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {expert.profile.bio}
+                    </p>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      {expert.profile.location}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      Réponse en {expert.availability.responseTime}h
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="w-4 h-4" />
+                      {expert.pricing.minimumGigPrice}€ - {expert.pricing.maximumGigPrice}€
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {expert.expertise.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {expert.expertise.yearsExperience} ans d'expérience
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-center p-2 bg-gray-50 rounded">
+                        <div className="font-semibold">{expert.stats.completedGigs}</div>
+                        <div className="text-muted-foreground">Projets</div>
+                      </div>
+                      <div className="text-center p-2 bg-gray-50 rounded">
+                        <div className="font-semibold">{Math.round(expert.stats.successRate * 100)}%</div>
+                        <div className="text-muted-foreground">Succès</div>
+                      </div>
+                    </div>
+
+                    <Link href={`/marketplace/expert/${expert.id}`}>
+                      <Button className="w-full">
+                        Voir le profil
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="gigs" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {gigs.map((gig) => (
+                <Card key={gig.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold line-clamp-2">{gig.title}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="w-6 h-6">
+                            <AvatarImage src={gig.client.avatar} alt={gig.client.name} />
+                            <AvatarFallback className="text-xs">
+                              {gig.client.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-muted-foreground">
+                            {gig.client.name}
+                          </span>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {gig.description}
-                      </p>
+                      <div className="text-right">
+                        <div className="font-semibold text-lg">{gig.price}€</div>
+                        <div className="text-sm text-muted-foreground">
+                          {gig.estimatedDuration}min
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {gig.description}
+                    </p>
 
-                      <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {gig.category}
+                      </Badge>
+                      <Badge className={`text-xs ${getComplexityColor(gig.complexity)}`}>
+                        {gig.complexity}
+                      </Badge>
+                      <Badge className={`text-xs ${getUrgencyColor(gig.urgency)}`}>
+                        {gig.urgency}
+                      </Badge>
+                      {gig.remote && (
                         <Badge variant="outline" className="text-xs">
-                          {gig.category}
+                          Remote
                         </Badge>
-                        <Badge className={`text-xs ${getComplexityColor(gig.complexity)}`}>
-                          {gig.complexity}
-                        </Badge>
-                        <Badge className={`text-xs ${getUrgencyColor(gig.urgency)}`}>
-                          {gig.urgency}
-                        </Badge>
-                        {gig.remote && (
-                          <Badge variant="outline" className="text-xs">
-                            Remote
+                      )}
+                    </div>
+
+                    {gig.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {gig.tags.slice(0, 3).map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {gig.tags.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{gig.tags.length - 3}
                           </Badge>
                         )}
                       </div>
+                    )}
 
-                      {gig.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {gig.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {gig.tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{gig.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-center p-2 bg-gray-50 rounded">
-                          <div className="font-semibold">{gig.applicationCount}</div>
-                          <div className="text-muted-foreground">Candidatures</div>
-                        </div>
-                        <div className="text-center p-2 bg-gray-50 rounded">
-                          <div className="font-semibold">{gig.viewCount}</div>
-                          <div className="text-muted-foreground">Vues</div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-center p-2 bg-gray-50 rounded">
+                        <div className="font-semibold">{gig.applicationCount}</div>
+                        <div className="text-muted-foreground">Candidatures</div>
                       </div>
+                      <div className="text-center p-2 bg-gray-50 rounded">
+                        <div className="font-semibold">{gig.viewCount}</div>
+                        <div className="text-muted-foreground">Vues</div>
+                      </div>
+                    </div>
 
-                      {gig.applicationDeadline && (
-                        <div className="flex items-center gap-2 text-sm text-orange-600">
-                          <Calendar className="w-4 h-4" />
-                          Deadline: {new Date(gig.applicationDeadline).toLocaleDateString()}
-                        </div>
-                      )}
+                    {gig.applicationDeadline && (
+                      <div className="flex items-center gap-2 text-sm text-orange-600">
+                        <Calendar className="w-4 h-4" />
+                        Deadline: {new Date(gig.applicationDeadline).toLocaleDateString()}
+                      </div>
+                    )}
 
-                      <Link href={`/marketplace/gig/${gig.id}`}>
-                        <Button className="w-full">
-                          Voir le projet
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-    </div>
+                    <Link href={`/marketplace/gig/${gig.id}`}>
+                      <Button className="w-full">
+                        Voir le projet
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppShell>
   );
 }

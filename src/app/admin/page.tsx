@@ -1,7 +1,7 @@
 'use client'
 
-import AdminDashboardImproved from '@/components/admin-dashboard-improved'
+import AdminDashboard from '@/components/admin-dashboard'
 
 export default function AdminPage() {
-  return <AdminDashboardImproved />
+  return <AdminDashboard />
 }

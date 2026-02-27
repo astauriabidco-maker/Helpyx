@@ -14,10 +14,11 @@ function getMonitoringConnector(): MonitoringConnector {
 // DELETE - Supprimer un système de monitoring
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const systemId = params.id;
+    const { id } = await params;
+    const systemId = id;
     
     if (!systemId) {
       return NextResponse.json(
@@ -52,10 +53,11 @@ export async function DELETE(
 // POST - Forcer la synchronisation d'un système
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const systemId = params.id;
+    const { id } = await params;
+    const systemId = id;
     const body = await request.json();
     
     if (!systemId) {

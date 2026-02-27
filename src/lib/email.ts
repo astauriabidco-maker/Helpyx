@@ -17,8 +17,8 @@ export class EmailService {
       if (process.env.NODE_ENV === 'development') {
         // Créer un compte de test Ethereal
         const testAccount = await nodemailer.createTestAccount();
-        
-        this.transporter = nodemailer.createTransporter({
+
+        this.transporter = nodemailer.createTransport({
           host: testAccount.smtp.host,
           port: testAccount.smtp.port,
           secure: testAccount.smtp.secure,
@@ -31,7 +31,7 @@ export class EmailService {
         console.log('📧 Email test account:', testAccount.user);
       } else {
         // Configuration pour la production (utilise SMTP ou SendGrid)
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: parseInt(process.env.SMTP_PORT || '587'),
           secure: process.env.SMTP_SECURE === 'true',
@@ -42,7 +42,7 @@ export class EmailService {
         });
       }
     }
-    
+
     return this.transporter;
   }
 
@@ -50,7 +50,7 @@ export class EmailService {
   static async sendEmail(options: EmailOptions): Promise<void> {
     try {
       const transporter = await this.getTransporter();
-      
+
       const mailOptions = {
         from: process.env.EMAIL_FROM || '"TechSupport" <noreply@techsupport.com>',
         to: options.to,
@@ -60,11 +60,11 @@ export class EmailService {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('📧 Email sent:', nodemailer.getTestMessageUrl(info));
       }
-      
+
       console.log('✅ Email envoyé avec succès à:', options.to);
     } catch (error) {
       console.error('❌ Erreur lors de l\'envoi de l\'email:', error);
@@ -75,7 +75,7 @@ export class EmailService {
   // Email de vérification
   static async sendVerificationEmail(email: string, token: string, name?: string): Promise<void> {
     const verifyUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -127,7 +127,7 @@ export class EmailService {
   // Email de réinitialisation de mot de passe
   static async sendPasswordResetEmail(email: string, token: string, name?: string): Promise<void> {
     const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -188,10 +188,10 @@ export class EmailService {
 
   // Email de notification de ticket
   static async sendTicketNotification(email: string, ticketData: any, type: 'created' | 'updated' = 'created'): Promise<void> {
-    const subject = type === 'created' 
-      ? `Nouveau ticket créé - ${ticketData.id}` 
+    const subject = type === 'created'
+      ? `Nouveau ticket créé - ${ticketData.id}`
       : `Ticket mis à jour - ${ticketData.id}`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -216,9 +216,9 @@ export class EmailService {
           </div>
           <div class="content">
             <h2>Bonjour,</h2>
-            <p>${type === 'created' 
-              ? 'Un nouveau ticket a été créé sur notre plateforme.' 
-              : 'Un ticket existant a été mis à jour.'}</p>
+            <p>${type === 'created'
+        ? 'Un nouveau ticket a été créé sur notre plateforme.'
+        : 'Un ticket existant a été mis à jour.'}</p>
             
             <div class="ticket-info">
               <h3>Informations du ticket</h3>

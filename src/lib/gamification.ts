@@ -74,7 +74,7 @@ export class GamificationService {
           type,
           description,
           points,
-          metadata: metadata ? JSON.stringify(metadata) : null
+          metadata: metadata ? JSON.stringify(metadata) : undefined
         }
       });
 
@@ -88,7 +88,7 @@ export class GamificationService {
 
       // Vérifier les achievements
       const unlockedAchievements = await AchievementService.checkAndUnlockAchievements(userId);
-      
+
       // Enregistrer les achievements débloqués
       for (const achievement of unlockedAchievements) {
         await this.recordActivity(
@@ -102,7 +102,7 @@ export class GamificationService {
       // Vérifier le niveau
       await this.checkLevelUp(userId);
 
-      return activity;
+      return activity as any;
     } catch (error) {
       console.error('Error recording activity:', error);
       throw error;
@@ -194,9 +194,9 @@ export class GamificationService {
 
     const now = new Date();
     const lastActive = new Date(user.lastActiveAt);
-    
+
     // Vérifier si c'est le même jour
-    const isSameDay = 
+    const isSameDay =
       now.getDate() === lastActive.getDate() &&
       now.getMonth() === lastActive.getMonth() &&
       now.getFullYear() === lastActive.getFullYear();
@@ -208,8 +208,8 @@ export class GamificationService {
     // Vérifier si c'est le jour suivant
     const tomorrow = new Date(lastActive);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const isNextDay = 
+
+    const isNextDay =
       now.getDate() === tomorrow.getDate() &&
       now.getMonth() === tomorrow.getMonth() &&
       now.getFullYear() === tomorrow.getFullYear();
@@ -387,7 +387,7 @@ export class GamificationService {
   // Filtrer par période pour le leaderboard
   private static getLeaderboardDateFilter(period: string) {
     const now = new Date();
-    
+
     switch (period) {
       case 'daily':
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -396,7 +396,7 @@ export class GamificationService {
             gte: today
           }
         };
-      
+
       case 'weekly':
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return {
@@ -404,7 +404,7 @@ export class GamificationService {
             gte: weekAgo
           }
         };
-      
+
       case 'monthly':
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         return {
@@ -412,7 +412,7 @@ export class GamificationService {
             gte: monthAgo
           }
         };
-      
+
       default:
         return {};
     }
@@ -421,7 +421,7 @@ export class GamificationService {
   // Initialiser la gamification pour un nouvel utilisateur
   static async initializeUserGamification(userId: string): Promise<void> {
     await AchievementService.initializeDefaultAchievements();
-    
+
     // Bonus de bienvenue
     await this.recordActivity(
       userId,

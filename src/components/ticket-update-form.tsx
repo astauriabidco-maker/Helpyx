@@ -9,13 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Update, 
-  Save, 
-  X, 
-  User, 
-  Tag, 
-  AlertTriangle, 
+import {
+  Edit,
+  Save,
+  X,
+  User,
+  Tag,
+  AlertTriangle,
   Clock,
   Monitor,
   Smartphone,
@@ -32,6 +32,7 @@ interface Ticket {
   status: string;
   priorite: string;
   type_panne?: string;
+  categorie?: string;
   equipement_type?: string;
   marque?: string;
   modele?: string;
@@ -84,18 +85,18 @@ const CATEGORIES = [
 ];
 
 const TAGS_SUGGESTES = [
-  'GPU', 'Écran', 'Clavier', 'Souris', 'RAM', 'Disque dur', 'SSD', 
+  'GPU', 'Écran', 'Clavier', 'Souris', 'RAM', 'Disque dur', 'SSD',
   'Windows', 'MacOS', 'Linux', 'Office', 'Adobe', 'VPN', 'WiFi',
   'Imprimante', 'Scanner', 'Moniteur', 'Câble', 'Alimentation'
 ];
 
-export function TicketUpdateForm({ 
-  ticket, 
-  agents, 
-  onUpdate, 
-  onCancel, 
-  currentUserId, 
-  currentUserRole 
+export function TicketUpdateForm({
+  ticket,
+  agents,
+  onUpdate,
+  onCancel,
+  currentUserId,
+  currentUserRole
 }: TicketUpdateFormProps) {
   const [formData, setFormData] = useState<Partial<Ticket>>({
     titre: ticket.titre || '',
@@ -191,7 +192,7 @@ export function TicketUpdateForm({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Update className="h-5 w-5" />
+              <Edit className="h-5 w-5" />
               Mettre à jour le ticket #{ticket.id}
             </CardTitle>
             <CardDescription>
@@ -325,7 +326,7 @@ export function TicketUpdateForm({
           {/* Informations sur l'équipement */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Informations sur l'équipement</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="equipement_type">Type d'équipement</Label>
@@ -457,7 +458,7 @@ export function TicketUpdateForm({
           {/* Options */}
           <div className="space-y-3">
             <h3 className="text-lg font-medium">Options</h3>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="garantie"

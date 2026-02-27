@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Activity, 
+import {
+  Activity,
   Zap,
   Radio,
   Play,
@@ -101,15 +101,15 @@ export function RealTimeProcessing() {
   const [rules, setRules] = useState<ProcessingRule[]>([]);
   const [selectedSource, setSelectedSource] = useState('all');
   const [batchSize, setBatchSize] = useState('10');
-  const [interval, setInterval] = useState('5000');
+  const [intervalValue, setIntervalValue] = useState('5000');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     loadMetrics();
     loadRules();
     loadRecentStreams();
-    
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -119,7 +119,7 @@ export function RealTimeProcessing() {
 
   useEffect(() => {
     if (isProcessing) {
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = globalThis.setInterval(() => {
         loadMetrics();
         simulateNewStream();
       }, 2000);
@@ -128,7 +128,7 @@ export function RealTimeProcessing() {
         clearInterval(intervalRef.current);
       }
     }
-    
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -230,7 +230,7 @@ export function RealTimeProcessing() {
     const sources = ['tickets', 'comments', 'logs', 'metrics'];
     const types: ('ticket' | 'comment' | 'log' | 'metric')[] = ['ticket', 'comment', 'log', 'metric'];
     const statuses: ('pending' | 'processing' | 'completed' | 'error')[] = ['pending', 'processing', 'completed', 'error'];
-    
+
     const newStream: ProcessingStream = {
       id: Date.now().toString(),
       source: sources[Math.floor(Math.random() * sources.length)],
@@ -255,7 +255,7 @@ export function RealTimeProcessing() {
         },
         body: JSON.stringify({
           batchSize: parseInt(batchSize),
-          interval: parseInt(interval),
+          interval: parseInt(intervalValue),
           sources: selectedSource === 'all' ? ['tickets', 'comments', 'logs', 'metrics'] : [selectedSource]
         }),
       });
@@ -284,7 +284,7 @@ export function RealTimeProcessing() {
   };
 
   const toggleRule = async (ruleId: string) => {
-    setRules(prev => prev.map(rule => 
+    setRules(prev => prev.map(rule =>
       rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
     ));
 
@@ -463,7 +463,7 @@ export function RealTimeProcessing() {
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Intervalle (ms)</label>
-                  <Select value={interval} onValueChange={setInterval}>
+                  <Select value={intervalValue} onValueChange={setIntervalValue}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

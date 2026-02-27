@@ -18,22 +18,22 @@ export async function POST(request: NextRequest) {
       try {
         // Simuler le traitement de données
         console.log(`Processing batch of ${batchSize} items from ${sources.join(', ')}`);
-        
+
         // Ici, vous ajouteriez la logique réelle de traitement:
         // 1. Récupérer les nouvelles données des sources
         // 2. Traiter avec NLP
         // 3. Mettre à jour le graphe de connaissances
         // 4. Générer des insights
-        
+
         // Simulation pour la démo
         await simulateDataProcessing(batchSize, sources);
-        
+
       } catch (error) {
         console.error('Error in real-time processing:', error);
       }
     }, interval);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Real-time processing started',
       batchSize,
       interval,
@@ -52,12 +52,12 @@ async function simulateDataProcessing(batchSize: number, sources: string[]) {
   // Simuler le traitement de données
   const processingTime = Math.random() * 1000 + 500; // 500-1500ms
   await new Promise(resolve => setTimeout(resolve, processingTime));
-  
+
   console.log(`Processed ${batchSize} items from ${sources.join(', ')} in ${processingTime.toFixed(0)}ms`);
 }
 
-// Fonction pour arrêter le traitement (exportée pour l'API stop)
-export function stopProcessing() {
+// Fonction pour arrêter le traitement
+function stopProcessing() {
   if (processingInterval) {
     clearInterval(processingInterval);
     processingInterval = null;

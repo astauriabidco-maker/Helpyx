@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  ExternalLink, 
-  CheckCircle, 
-  AlertCircle, 
-  Chrome, 
-  Github, 
+import {
+  ArrowLeft,
+  ExternalLink,
+  CheckCircle,
+  AlertCircle,
+  Chrome,
+  Github,
   Building,
   Key,
   Shield,
@@ -161,10 +161,10 @@ export default function OAuthSetup() {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TechSupport Pro
+              Helpyx
             </span>
           </Link>
-          
+
           <Link href="/auth/signin">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -193,7 +193,7 @@ export default function OAuthSetup() {
         <Alert className="mb-8 border-blue-200 bg-blue-50">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>Important :</strong> Ces configurations sont nécessaires pour le développement local. 
+            <strong>Important :</strong> Ces configurations sont nécessaires pour le développement local.
             En production, utilisez des URLs HTTPS et des domaines valides.
           </AlertDescription>
         </Alert>
@@ -233,9 +233,9 @@ export default function OAuthSetup() {
                           <h4 className="font-semibold text-gray-900 mb-1">{step.title}</h4>
                           <p className="text-gray-600 text-sm mb-2">{step.description}</p>
                           {step.link && (
-                            <a 
-                              href={step.link} 
-                              target="_blank" 
+                            <a
+                              href={step.link}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
                             >

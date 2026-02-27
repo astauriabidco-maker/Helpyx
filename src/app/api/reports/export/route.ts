@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
               acc.resolus++;
             }
             if (ticket.actualResolutionTime) {
-              acc.tempsTotal += ticket.actualResolutionTime;
+              acc.tempsTotal += new Date(ticket.actualResolutionTime).getTime() - new Date(ticket.createdAt).getTime();
               acc.resolutionsAvecTemps++;
             }
             return acc;
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
             'Tickets Créés': agent.tickets.length,
             'Tickets Assignés': assignedStats.total,
             'Tickets Résolus': assignedStats.resolus,
-            'Taux Résolution': assignedStats.total > 0 
+            'Taux Résolution': assignedStats.total > 0
               ? `${((assignedStats.resolus / assignedStats.total) * 100).toFixed(1)}%`
               : '0%',
             'Temps Moyen Résolution': assignedStats.resolutionsAvecTemps > 0
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
       // Générer le CSV
       const csvContent = [
         headers.join(','),
-        ...data.map(row => 
+        ...data.map(row =>
           headers.map(header => {
             const value = row[header];
             // Échapper les virgules et guillemets

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que la session existe
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'annotation
-    const newAnnotation = await db.aRAnnotations.create({
+    const newAnnotation = await db.aRAnnotation.create({
       data: {
         sessionId: session.id,
         userId,
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer la session
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les annotations
-    const annotations = await db.aRAnnotations.findMany({
+    const annotations = await db.aRAnnotation.findMany({
       where: { sessionId: session.id },
       orderBy: { createdAt: 'desc' },
       include: {

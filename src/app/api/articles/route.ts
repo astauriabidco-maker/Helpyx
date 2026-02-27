@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { requireTenant } from '@/lib/tenant';
 
 const createArticleSchema = z.object({
   titre: z.string().min(1),
@@ -14,11 +17,16 @@ const createArticleSchema = z.object({
   publie: z.boolean().default(false),
 });
 
-// GET - Récupérer les articles avec filtres
+// GET - Récupérer les articles avec filtres — isolés par entreprise
 export async function GET(request: NextRequest) {
   try {
+    // Multi-tenant: auth + isolation par entreprise
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+    const { companyId } = ctx;
+
     const { searchParams } = new URL(request.url);
-    
+
     const categorie = searchParams.get('categorie');
     const recherche = searchParams.get('recherche');
     const difficulte = searchParams.get('difficulte');
@@ -28,27 +36,28 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    
+    // TOUJOURS filtré par companyId
+    const where: any = { companyId };
+
     if (categorie) {
       where.categorie = categorie;
     }
-    
+
     if (difficulte) {
       where.difficulte = difficulte;
     }
-    
+
     if (publie !== null) {
       where.publie = publie === 'true';
     }
-    
+
     if (tags) {
       const tagArray = tags.split(',');
       where.tags = {
         contains: tagArray.map(tag => `"${tag.trim()}"`).join(',')
       };
     }
-    
+
     if (recherche) {
       where.OR = [
         { titre: { contains: recherche } },
@@ -104,15 +113,22 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Créer un nouvel article
+// POST - Créer un nouvel article — dans l'entreprise de l'utilisateur
 export async function POST(request: NextRequest) {
   try {
+    // Multi-tenant: auth + companyId
+    const [ctx, errorResponse] = await requireTenant({ requireRole: ['ADMIN', 'AGENT'] });
+    if (errorResponse) return errorResponse;
+    const { user, companyId } = ctx;
+
     const body = await request.json();
     const validatedData = createArticleSchema.parse(body);
 
     const article = await db.article.create({
       data: {
         ...validatedData,
+        companyId: user.companyId,
+        auteurId: user.id,
         tags: validatedData.tags ? JSON.stringify(validatedData.tags) : null,
       },
       include: {

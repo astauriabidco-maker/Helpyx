@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
-import ZAI from 'z-ai-web-dev-sdk';
+
 
 const restockSchema = z.object({
   inventoryId: z.string(),
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     // Si commande automatique, utiliser l'IA pour générer un email de commande
     if (validatedData.autoOrder) {
       try {
-        const zai = await ZAI.create();
+        const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
         
         const emailContent = await zai.chat.completions.create({
           messages: [

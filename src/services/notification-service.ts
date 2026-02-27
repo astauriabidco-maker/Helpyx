@@ -10,14 +10,11 @@ class NotificationService {
       return;
     }
 
-    this.socket = io(process.env.NODE_ENV === 'production' 
-      ? window.location.origin 
-      : 'http://localhost:3000', 
-      {
-        auth: { token },
-        transports: ['websocket', 'polling']
-      }
-    );
+    this.socket = io({
+      path: '/api/socketio',
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
 
     this.socket.on('connect', () => {
       console.log('🔔 Notification service connected');

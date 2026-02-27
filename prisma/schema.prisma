@@ -58,6 +58,7 @@ model Subscription {
   features        String?  // JSON array of enabled features
   autoRenew       Boolean  @default(true)
   paymentMethodId String?
+  stripeSubscriptionId String?  @unique // Stripe subscription ID
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -104,6 +105,7 @@ model User {
   emailVerified   DateTime?
   image           String?
   phone           String?   // Numéro de téléphone pour SMS
+  address         String?   // Adresse physique
   lastLoginAt     DateTime?
   isActive        Boolean   @default(true)
   preferences     String?   // JSON for user preferences
@@ -154,6 +156,7 @@ model User {
   
   // Marketplace relations
   expertProfile         Expert?  @relation("ExpertProfile")
+  invoices        Invoice[] @relation("ClientInvoices")
   clientGigs            Gig[]    @relation("ClientGigs")
   expertGigs            Gig[]    @relation("ExpertGigs")
   clientReviews         Review[] @relation("ClientReviews")
@@ -163,6 +166,63 @@ model User {
 
   @@unique([email, companyId]) // Unique email per company
   @@map("users")
+}
+
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   String   @unique
+  clientId        String
+  issueDate       DateTime @default(now())
+  dueDate         DateTime
+  subtotal        Float
+  taxRate         Float    @default(20)
+  taxAmount       Float
+  totalAmount     Float
+  paidAmount      Float    @default(0)
+  status          String   @default("draft") // draft, sent, paid, overdue, cancelled
+  notes           String?
+  paymentTerms    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  client          User     @relation("ClientInvoices", fields: [clientId], references: [id], onDelete: Cascade)
+  items           InvoiceItem[]
+  payments        Payment[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  description     String
+  quantity        Int      @default(1)
+  unitPrice       Float
+  totalPrice      Float
+  type            String   @default("service") // service, product
+
+  // Relations
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  amount          Float
+  paymentDate     DateTime @default(now())
+  method          String   @default("stripe") // stripe, wire_transfer, cash
+  reference       String?  // transaction ID
+  status          String   @default("completed") // pending, completed, failed, refunded
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
 
 model Account {
@@ -760,6 +820,8 @@ model DigitalTwin {
   manufacturer    String?
   serialNumber    String?  @map("serial_number")
   location        String?
+  operatingSystem String?  @map("operating_system")
+  purchaseDate    DateTime @default(now()) @map("purchase_date")
   userId          String?  // Utilisateur principal
   status          String   @default("online") // online, offline, warning, critical
   healthScore     Int      @default(100) // 0-100

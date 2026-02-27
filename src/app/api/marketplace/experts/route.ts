@@ -119,8 +119,7 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             reviews: true,
-            gigs: true,
-            completedGigs: true
+            gigs: true
           }
         }
       },

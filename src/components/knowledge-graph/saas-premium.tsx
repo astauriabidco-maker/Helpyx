@@ -10,8 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Building2, 
+import {
+  Building2,
   Crown,
   Star,
   Zap,
@@ -80,6 +80,7 @@ interface BillingInfo {
   amount: number;
   currency: string;
   paymentMethod: string;
+  period?: string;
   invoices: Array<{
     id: string;
     date: Date;
@@ -527,9 +528,8 @@ export function SaaSPremium() {
                 className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    billingPeriod === 'year' ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${billingPeriod === 'year' ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
               <span className={`text-sm ${billingPeriod === 'year' ? 'font-medium' : 'text-muted-foreground'}`}>
@@ -551,7 +551,7 @@ export function SaaSPremium() {
                     <Badge className="bg-purple-500">Enterprise</Badge>
                   </div>
                 )}
-                
+
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl">{tier.name}</CardTitle>
                   <div className="mt-4">
@@ -564,7 +564,7 @@ export function SaaSPremium() {
                     <p className="text-sm text-green-500">Économisez {Math.round(tier.price * 0.2 * 12)}€/an</p>
                   )}
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <ul className="space-y-2">
                     {tier.features.map((feature, index) => (
@@ -574,9 +574,9 @@ export function SaaSPremium() {
                       </li>
                     ))}
                   </ul>
-                  
-                  <Button 
-                    className="w-full" 
+
+                  <Button
+                    className="w-full"
                     variant={tier.popular ? 'default' : 'outline'}
                     onClick={() => handleUpgrade(tier.id)}
                     disabled={tier.id === selectedTier}
@@ -609,7 +609,7 @@ export function SaaSPremium() {
                     </div>
                     <Progress value={(usageMetrics.users / 50) * 100} />
                   </div>
-                  
+
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Stockage</span>
@@ -618,7 +618,7 @@ export function SaaSPremium() {
                     <Progress value={usageMetrics.storage} />
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
@@ -627,7 +627,7 @@ export function SaaSPremium() {
                     </div>
                     <Progress value={(usageMetrics.apiCalls / 100000) * 100} />
                   </div>
-                  
+
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Puissance de calcul</span>
@@ -641,7 +641,7 @@ export function SaaSPremium() {
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Votre utilisation actuelle est bien dans les limites de votre plan Professional. 
+                  Votre utilisation actuelle est bien dans les limites de votre plan Professional.
                   Pensez à passer au plan Enterprise si vous avez besoin de plus de ressources.
                 </AlertDescription>
               </Alert>
@@ -714,7 +714,7 @@ export function SaaSPremium() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-semibold mb-4">Prochaine facturation</h4>
                   <div className="p-4 border rounded-lg">

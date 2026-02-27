@@ -40,7 +40,7 @@ export class BehavioralDetector {
     triggers: string[];
     recommendations: string[];
   }> {
-    const triggers = [];
+    const triggers: string[] = [];
     let frustrationScore = 0;
 
     // Analyse de la fréquence des messages
@@ -76,7 +76,7 @@ export class BehavioralDetector {
     const confidence = Math.min(frustrationScore, 1);
 
     const recommendations = this.generateFrustrationRecommendations(
-      frustrationScore, 
+      frustrationScore,
       triggers
     );
 
@@ -115,7 +115,7 @@ export class BehavioralDetector {
 
     messages.forEach(message => {
       const text = message.content.toLowerCase();
-      
+
       visualKeywords.forEach(keyword => {
         if (text.includes(keyword)) {
           scores.visual += 1;
@@ -165,7 +165,7 @@ export class BehavioralDetector {
     confidence: number;
     factors: string[];
   }> {
-    const factors = [];
+    const factors: string[] = [];
     let urgencyScore = 0;
 
     // Facteurs temporels
@@ -186,7 +186,7 @@ export class BehavioralDetector {
     // Facteurs linguistiques
     const urgentKeywords = ['urgent', 'immédiatement', 'vite', 'urgence', 'asap'];
     const messageText = indicators.sentimentAnalysis.keywords.join(' ').toLowerCase();
-    
+
     urgentKeywords.forEach(keyword => {
       if (messageText.includes(keyword)) {
         urgencyScore += 0.2;
@@ -219,7 +219,7 @@ export class BehavioralDetector {
   }
 
   private generateFrustrationRecommendations(score: number, triggers: string[]): string[] {
-    const recommendations = [];
+    const recommendations: string[] = [];
 
     if (score >= 0.8) {
       recommendations.push('Escalate to senior agent immediately');
@@ -298,7 +298,7 @@ export class BehavioralSession {
 
     // Analyse de sentiment simplifiée
     const sentimentScore = this.calculateSentimentScore();
-    
+
     // Patterns linguistiques
     const linguisticPatterns = this.analyzeLinguisticPatterns();
 
@@ -339,7 +339,7 @@ export class BehavioralSession {
 
   private analyzeLinguisticPatterns() {
     const allText = this.messages.map(m => m.content).join(' ');
-    
+
     return {
       exclamationCount: (allText.match(/!/g) || []).length,
       questionCount: (allText.match(/\?/g) || []).length,
@@ -375,7 +375,7 @@ export class BehavioralSession {
 
   private countTechnicalTerms(text: string): number {
     const technicalTerms = ['API', 'base de données', 'serveur', 'code', 'développement'];
-    return technicalTerms.filter(term => 
+    return technicalTerms.filter(term =>
       text.toLowerCase().includes(term.toLowerCase())
     ).length;
   }

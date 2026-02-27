@@ -1,5 +1,5 @@
 import { KnowledgeGraphEngine } from './knowledge-graph';
-import { ZAI } from 'z-ai-web-dev-sdk';
+import ZAI from 'z-ai-web-dev-sdk';
 
 export interface MonitoringSystem {
   id: string;
@@ -62,11 +62,17 @@ export class MonitoringConnector {
   private knowledgeGraph: KnowledgeGraphEngine;
   private activeConnections: Map<string, MonitoringSystem> = new Map();
   private syncIntervals: Map<string, NodeJS.Timeout> = new Map();
-  private zai: ZAI;
+  private zai: ZAI | null = null;
 
   constructor() {
     this.knowledgeGraph = new KnowledgeGraphEngine();
-    this.zai = new ZAI();
+  }
+
+  private async getZai(): Promise<ZAI> {
+    if (!this.zai) {
+      this.zai = await ZAI.create();
+    }
+    return this.zai;
   }
 
   /**
@@ -221,7 +227,7 @@ export class MonitoringConnector {
    * Traiter les données de monitoring
    */
   private async processMonitoringData(
-    data: MonitoringData, 
+    data: MonitoringData,
     system: MonitoringSystem
   ): Promise<Array<{ entity: any; relations: any[] }>> {
     const results: Array<{ entity: any; relations: any[] }> = [];
@@ -262,7 +268,7 @@ export class MonitoringConnector {
    * Mapper un nœud de topologie vers une entité
    */
   private async mapToEntity(
-    node: any, 
+    node: any,
     mappingRules: MappingRule[]
   ): Promise<any | null> {
     try {
@@ -280,7 +286,8 @@ export class MonitoringConnector {
         - properties: propriétés supplémentaires
       `;
 
-      const response = await this.zai.chat.completions.create({
+      const zai = await this.getZai();
+      const response = await zai.chat.completions.create({
         messages: [
           { role: 'system', content: 'Tu es un expert en infrastructure IT.' },
           { role: 'user', content: prompt }
@@ -323,7 +330,7 @@ export class MonitoringConnector {
    * Mapper un événement vers une entité d'erreur
    */
   private async mapEventToEntity(
-    event: any, 
+    event: any,
     mappingRules: MappingRule[]
   ): Promise<any | null> {
     return {
@@ -351,7 +358,7 @@ export class MonitoringConnector {
    * Mapper une métrique anormale vers une entité
    */
   private async mapMetricToEntity(
-    metric: any, 
+    metric: any,
     mappingRules: MappingRule[]
   ): Promise<any | null> {
     return {
@@ -380,8 +387,8 @@ export class MonitoringConnector {
    * Extraire les relations depuis la topologie
    */
   private async extractRelations(
-    node: any, 
-    topology: any[], 
+    node: any,
+    topology: any[],
     mappingRules: MappingRule[]
   ): Promise<any[]> {
     const relations: any[] = [];

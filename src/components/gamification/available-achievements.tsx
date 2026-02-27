@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { 
-  Trophy, 
-  Star, 
-  Target, 
+import {
+  Trophy,
+  Star,
+  Target,
   Lock,
   CheckCircle,
   Zap,
@@ -44,7 +44,7 @@ export function AvailableAchievements({ userId }: AvailableAchievementsProps) {
   const fetchAvailableAchievements = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/gamification/achievements?userId=${userId}&type=available`);
+      const response = await fetch(`/api/gamification/achievements?type=available`);
       const data = await response.json();
       setAchievements(data.achievements || []);
     } catch (error) {
@@ -92,7 +92,7 @@ export function AvailableAchievements({ userId }: AvailableAchievementsProps) {
     return 'Facile';
   };
 
-  const filteredAchievements = achievements.filter(achievement => 
+  const filteredAchievements = achievements.filter(achievement =>
     filter === 'all' || achievement.category === filter
   );
 
@@ -137,7 +137,7 @@ export function AvailableAchievements({ userId }: AvailableAchievementsProps) {
             </span>
           </div>
         </div>
-        
+
         {/* Filtres par catégorie */}
         <div className="flex flex-wrap gap-2">
           <Button
@@ -166,8 +166,8 @@ export function AvailableAchievements({ userId }: AvailableAchievementsProps) {
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <p className="text-gray-600 font-medium">
-              {filter === 'all' 
-                ? 'Félicitations! Vous avez débloqué tous les achievements disponibles!' 
+              {filter === 'all'
+                ? 'Félicitations! Vous avez débloqué tous les achievements disponibles!'
                 : `Aucun achievement à débloquer dans la catégorie ${filter}`
               }
             </p>

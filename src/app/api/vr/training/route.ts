@@ -38,12 +38,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Initialiser les étapes de progression
-    for (let i = 0; i < training.steps.length; i++) {
+    const steps = (training.steps || []) as any[];
+    for (let i = 0; i < steps.length; i++) {
       await db.vRTrainingProgress.create({
         data: {
           trainingSessionId: trainingSession.id,
-          stepId: training.steps[i].id,
-          stepName: training.steps[i].name,
+          stepId: steps[i].id,
+          stepName: steps[i].name,
           status: 'not_started',
           progress: 0,
           timeSpent: 0,
@@ -175,7 +176,7 @@ export async function GET(request: NextRequest) {
       where: { userId },
       include: {
         training: true,
-        progress: true
+        progressSteps: true
       },
       orderBy: { startTime: 'desc' }
     });

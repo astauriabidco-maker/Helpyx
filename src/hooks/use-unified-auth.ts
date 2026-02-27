@@ -23,24 +23,24 @@ interface UnifiedSessionContextType {
 export function useUnifiedAuth(): UnifiedSessionContextType {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Détection du mode démo
-  const isDemoMode = session?.user?.isDemo || false;
-  
+  const isDemoMode = (session?.user as any)?.isDemo || false;
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
-    
+
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-      
+
       if (result?.error) {
         return { success: false, error: 'Email ou mot de passe incorrect' };
       }
-      
+
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
@@ -49,7 +49,7 @@ export function useUnifiedAuth(): UnifiedSessionContextType {
       setIsLoading(false);
     }
   };
-  
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -60,7 +60,7 @@ export function useUnifiedAuth(): UnifiedSessionContextType {
       setIsLoading(false);
     }
   };
-  
+
   return {
     user: session?.user as User || null,
     login,
@@ -73,14 +73,14 @@ export function useUnifiedAuth(): UnifiedSessionContextType {
 // Hook pour les comptes démo
 export function useDemoAccounts() {
   const [isDemoMode, setIsDemoMode] = useState(false);
-  
+
   useEffect(() => {
     // Vérifier si nous sommes en environnement de développement/preview
     const isDev = process.env.NODE_ENV === 'development';
     const isPreview = process.env.VERCEL_ENV === 'preview';
     setIsDemoMode(isDev || isPreview);
   }, []);
-  
+
   const demoAccounts = [
     {
       role: 'Client',
@@ -104,6 +104,6 @@ export function useDemoAccounts() {
       color: 'from-amber-500 to-orange-600'
     }
   ];
-  
+
   return { demoAccounts, isDemoMode };
 }

@@ -1,3 +1,4 @@
+// API pour gestion individuelle d'un utilisateur
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -5,21 +6,22 @@ import bcrypt from 'bcryptjs';
 // GET - Récupérer un utilisateur spécifique
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await db.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         company: {
           select: {
             id: true,
-            name: true,
+            nom: true,
             slug: true,
-            subscription: {
+            subscriptions: {
               select: {
                 plan: true,
-                status: true
+                statut: true
               }
             }
           }
@@ -42,7 +44,7 @@ export async function GET(
 
     // Retourner l'utilisateur sans le mot de passe
     const { password: _, ...userWithoutPassword } = user;
-    
+
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -56,15 +58,16 @@ export async function GET(
 // PUT - Mettre à jour un utilisateur
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { name, email, role, companyId, phone, isActive } = body;
 
     // Vérifier si l'utilisateur existe
     const existingUser = await db.user.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingUser) {
@@ -98,13 +101,13 @@ export async function PUT(
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const user = await db.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         company: {
           select: {
             id: true,
-            name: true,
+            nom: true,
             slug: true
           }
         }
@@ -113,7 +116,7 @@ export async function PUT(
 
     // Retourner l'utilisateur sans le mot de passe
     const { password: _, ...userWithoutPassword } = user;
-    
+
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error('Error updating user:', error);
@@ -127,12 +130,13 @@ export async function PUT(
 // DELETE - Supprimer un utilisateur
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Vérifier si l'utilisateur existe
     const existingUser = await db.user.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingUser) {
@@ -144,7 +148,7 @@ export async function DELETE(
 
     // Supprimer l'utilisateur
     await db.user.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     return NextResponse.json(

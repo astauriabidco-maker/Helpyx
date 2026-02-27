@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         {/* Header avec retour */}
         <div className="mb-6 text-center">
-          <Link href="/auth/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+          <Link href="/auth/signin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour à la connexion
           </Link>
@@ -130,7 +130,7 @@ export default function ForgotPasswordPage() {
                   >
                     Envoyer un autre email
                   </Button>
-                  <Link href="/auth/login">
+                  <Link href="/auth/signin">
                     <Button variant="ghost" className="w-full">
                       Retour à la connexion
                     </Button>

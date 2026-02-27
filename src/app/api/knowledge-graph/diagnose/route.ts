@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KnowledgeGraphEngine } from '@/lib/knowledge-graph';
-import ZAI from 'z-ai-web-dev-sdk';
+
 import { Entity, Relation, EntityType, RelationType } from '@/types/knowledge-graph';
 
 // Instance singleton du moteur
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const engine = getKnowledgeGraphEngine();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default;
     const zai = await ZAI.create();
 
     // Effectuer un diagnostic intelligent basé sur le graphe
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Diagnosis error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -134,7 +135,7 @@ async function findRelevantEntities(
   if (equipment) {
     const equipmentResults = await engine.contextualSearch({
       query: equipment,
-      context: { type: EntityType.EQUIPMENT },
+      context: { type: EntityType.EQUIPMENT } as any,
       semantic: true,
       filters: { maxResults: 5, minConfidence: 0.5 }
     });
@@ -158,7 +159,7 @@ function analyzeRelations(entities: Entity[], engine: KnowledgeGraphEngine) {
   // Analyser les relations entre les entités pertinentes
   for (const entity of entities) {
     const relatedEntities = engine.getRelatedEntities(entity.id, 2);
-    
+
     for (const related of relatedEntities) {
       // Trouver les relations entre les entités
       const relations = engine.getGraph().relationships.filter(r =>
@@ -214,7 +215,7 @@ async function getAIDiagnosis(
   relevantEntities: Entity[],
   relationsAnalysis: any,
   context: any,
-  history: any[],
+  history: any[] | undefined,
   zai: any
 ) {
   const prompt = `
@@ -305,7 +306,7 @@ function calculateRelevance(entity: Entity, symptoms: string[], equipment?: stri
   // Pertinence basée sur les symptômes
   for (const symptom of symptoms) {
     if (entity.name.toLowerCase().includes(symptom.toLowerCase()) ||
-        entity.description.toLowerCase().includes(symptom.toLowerCase())) {
+      entity.description.toLowerCase().includes(symptom.toLowerCase())) {
       relevance += 0.3;
     }
   }
@@ -366,6 +367,7 @@ export async function GET(request: NextRequest) {
     }
 
     const engine = getKnowledgeGraphEngine();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default;
     const zai = await ZAI.create();
 
     // Obtenir des suggestions rapides
@@ -398,7 +400,7 @@ async function getDiagnosticSuggestions(
     // Rechercher des entités pertinentes rapidement
     const results = await engine.contextualSearch({
       query,
-      context: equipment ? { equipment } : {},
+      context: (equipment ? { equipment } : {}) as any,
       semantic: true,
       filters: { maxResults: 5, minConfidence: 0.4 }
     });
@@ -446,7 +448,7 @@ async function getDiagnosticSuggestions(
     // Retourner des suggestions basées sur les entités si l'IA échoue
     return results.slice(0, 3).map(r => ({
       issue: r.entity.name,
-      probability: r.confidence,
+      probability: (r as any).confidence,
       quickSolution: 'Check related solutions in knowledge base'
     }));
 

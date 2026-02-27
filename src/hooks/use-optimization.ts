@@ -51,7 +51,7 @@ interface UseIntersectionObserver {
 }
 
 export function useIntersectionObserver(
-  elementRef: React.RefObject<Element>,
+  elementRef: React.RefObject<Element | null>,
   options?: IntersectionObserverInit
 ): UseIntersectionObserver {
   const [isIntersecting, setIsIntersecting] = useState(false);

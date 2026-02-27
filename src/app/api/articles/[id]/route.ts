@@ -17,11 +17,12 @@ const updateArticleSchema = z.object({
 // GET - Récupérer un article spécifique
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const article = await db.article.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         auteur: {
           select: {
@@ -56,14 +57,15 @@ export async function GET(
 // PUT - Mettre à jour un article
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateArticleSchema.parse(body);
 
     const article = await db.article.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...validatedData,
         tags: validatedData.tags ? JSON.stringify(validatedData.tags) : undefined,
@@ -96,11 +98,12 @@ export async function PUT(
 // DELETE - Supprimer un article
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await db.article.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     return NextResponse.json({ message: 'Article supprimé avec succès' });

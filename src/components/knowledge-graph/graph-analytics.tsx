@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Brain, 
-  TrendingUp, 
-  AlertTriangle, 
+import {
+  Brain,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle,
   BarChart3,
   PieChart,
@@ -71,12 +71,12 @@ interface AnalyticsData {
   }>;
 }
 
-export function GraphAnalytics({ 
-  entities, 
-  relations, 
-  insights = [], 
+export function GraphAnalytics({
+  entities,
+  relations,
+  insights = [],
   onInsightClick,
-  className = "" 
+  className = ""
 }: GraphAnalyticsProps) {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -114,8 +114,8 @@ export function GraphAnalytics({
 
     // Métriques de confiance
     const confidenceScores = entities.map(e => e.confidence);
-    const averageConfidence = confidenceScores.length > 0 
-      ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length 
+    const averageConfidence = confidenceScores.length > 0
+      ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length
       : 0;
 
     const confidenceMetrics = {
@@ -136,10 +136,10 @@ export function GraphAnalytics({
       .map(([entityId, connections]) => {
         const entity = entities.find(e => e.id === entityId);
         if (!entity) return null;
-        
+
         // Calculer l'influence basée sur les connexions et la confiance
         const influence = connections * entity.confidence;
-        
+
         return {
           entity,
           connections,
@@ -155,17 +155,17 @@ export function GraphAnalytics({
       .filter(entity => {
         // Entités avec très faible confiance
         if (entity.confidence < 0.3) return true;
-        
+
         // Entités isolées (pas de relations)
         const hasConnections = entityConnections[entity.id] > 0;
         if (!hasConnections && entity.type !== EntityType.BRAND) return true;
-        
+
         return false;
       })
       .map(entity => ({
         entity,
         reason: entity.confidence < 0.3 ? 'Faible confiance' : 'Entité isolée',
-        severity: entity.confidence < 0.2 ? 'high' : 'medium' as const
+        severity: (entity.confidence < 0.2 ? 'high' : 'medium') as 'low' | 'medium' | 'high'
       }));
 
     // Métriques de croissance (simulées)
@@ -438,8 +438,8 @@ export function GraphAnalytics({
                 <div className="grid grid-cols-2 gap-4">
                   {Object.entries(analyticsData.entityDistribution).map(([type, count]) => {
                     const typeEntities = entities.filter(e => e.type === type);
-                    const avgConfidence = typeEntities.length > 0 
-                      ? typeEntities.reduce((sum, e) => sum + e.confidence, 0) / typeEntities.length 
+                    const avgConfidence = typeEntities.length > 0
+                      ? typeEntities.reduce((sum, e) => sum + e.confidence, 0) / typeEntities.length
                       : 0;
 
                     return (
@@ -500,7 +500,7 @@ export function GraphAnalytics({
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Fréquence:</span>

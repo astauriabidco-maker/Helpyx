@@ -22,7 +22,7 @@ export function AdminBreadcrumb() {
   }
 
   const pathSegments = pathname.split('/').filter(Boolean)
-  const breadcrumbs = []
+  const breadcrumbs: { href: string; label: string; isCurrent: boolean }[] = []
 
   // Ajouter l'accueil
   breadcrumbs.push({
@@ -36,7 +36,7 @@ export function AdminBreadcrumb() {
   for (let i = 1; i < pathSegments.length; i++) {
     currentPath += '/' + pathSegments[i]
     const isLast = i === pathSegments.length - 1
-    
+
     breadcrumbs.push({
       href: currentPath,
       label: breadcrumbNames[currentPath] || pathSegments[i],
@@ -46,20 +46,20 @@ export function AdminBreadcrumb() {
 
   return (
     <div className="flex items-center space-x-2 text-sm text-muted-foreground py-3 px-4 border-b bg-muted/30">
-      <Link 
-        href="/admin" 
+      <Link
+        href="/admin"
         className="flex items-center hover:text-foreground transition-colors"
       >
         <Home className="h-4 w-4" />
       </Link>
-      
+
       {breadcrumbs.map((crumb, index) => (
         <div key={crumb.href} className="flex items-center space-x-2">
           <ChevronRight className="h-4 w-4" />
           {crumb.isCurrent ? (
             <span className="text-foreground font-medium">{crumb.label}</span>
           ) : (
-            <Link 
+            <Link
               href={crumb.href}
               className="hover:text-foreground transition-colors"
             >

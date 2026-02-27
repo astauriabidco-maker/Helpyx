@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Envoi SMS demandé:', validatedData);
 
-    const result = await smsService.sendSMS(validatedData);
+    const result = await smsService.sendSMS(validatedData as any);
 
     if (result.success) {
       return NextResponse.json({
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
       });
     } else {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: result.error || 'Erreur lors de l\'envoi du SMS' 
+        {
+          success: false,
+          error: result.error || 'Erreur lors de l\'envoi du SMS'
         },
         { status: 500 }
       );
@@ -36,10 +36,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Erreur API envoi SMS:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

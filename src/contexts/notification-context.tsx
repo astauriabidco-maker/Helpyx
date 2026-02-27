@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Notification, NotificationSettings } from '@/types/notifications';
+import { type Notification, type NotificationSettings } from '@/types/notifications';
 import { notificationService } from '@/services/notification-service';
 
 // Déclaration des types pour l'API Notification
@@ -9,7 +9,7 @@ declare global {
   interface Window {
     Notification: typeof Notification;
   }
-  
+
   interface NotificationOptions {
     body?: string;
     icon?: string;
@@ -21,9 +21,9 @@ declare global {
 
 // Fonction utilitaire pour vérifier la disponibilité des notifications desktop
 const isNotificationSupported = (): boolean => {
-  return typeof window !== 'undefined' && 
-         'Notification' in window && 
-         window.Notification !== undefined;
+  return typeof window !== 'undefined' &&
+    'Notification' in window &&
+    window.Notification !== undefined;
 };
 
 // Fonction utilitaire pour obtenir la permission de notification
@@ -114,7 +114,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Récupérer le token depuis le localStorage ou le contexte d'auth
     const token = localStorage.getItem('auth-token') || 'demo-token';
-    
+
     notificationService.connect(token);
     notificationService.onNotification(handleIncomingNotification);
 
@@ -122,7 +122,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const checkConnection = () => {
       setIsConnected(notificationService.isConnected());
     };
-    
+
     const interval = setInterval(checkConnection, 1000);
     checkConnection(); // Vérification initiale
 
@@ -235,7 +235,7 @@ export function useNotifications() {
 function playNotificationSound(type: string, priority: string) {
   try {
     const audio = new Audio();
-    
+
     // Différents sons selon le type et la priorité
     if (priority === 'critical') {
       audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
@@ -244,7 +244,7 @@ function playNotificationSound(type: string, priority: string) {
     } else {
       audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
     }
-    
+
     audio.volume = 0.3;
     audio.play().catch(() => {
       // Ignorer les erreurs de lecture audio

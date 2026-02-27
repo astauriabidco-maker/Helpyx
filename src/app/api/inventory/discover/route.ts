@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, range, filters } = discoverySchema.parse(body);
 
-    let discoveredDevices = [];
+    let discoveredDevices: any[] = [];
 
     switch (type) {
       case 'network':

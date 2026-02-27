@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Eye, EyeOff, Mail, Lock, User, ArrowLeft, Rocket, CheckCircle, 
+import {
+  Eye, EyeOff, Mail, Lock, User, ArrowLeft, Rocket, CheckCircle,
   Shield, Building, Users, Zap, Star, ArrowRight, Check,
   AlertCircle, UserPlus, Briefcase, Crown
 } from 'lucide-react';
@@ -148,7 +148,7 @@ export default function RegisterPage() {
         JWTClient.setAuth(data.tokens, data.user);
         setSuccess('Inscription réussie ! Redirection...');
         setCurrentStep(4);
-        
+
         // Rediriger selon le rôle
         setTimeout(() => {
           switch (data.user.role) {
@@ -191,10 +191,10 @@ export default function RegisterPage() {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TechSupport Pro
+              Helpyx
             </span>
           </Link>
-          
+
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">Déjà un compte ?</span>
             <Link href="/auth/signin">
@@ -220,7 +220,7 @@ export default function RegisterPage() {
                   Support Technique
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Rejoignez des centaines d'entreprises qui utilisent notre plateforme 
+                  Rejoignez des centaines d'entreprises qui utilisent notre plateforme
                   pour offrir un support client exceptionnel.
                 </p>
               </div>
@@ -330,11 +330,10 @@ export default function RegisterPage() {
                             {Object.entries(rolesInfo).map(([roleKey, roleInfo]) => (
                               <div
                                 key={roleKey}
-                                className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${
-                                  role === roleKey
+                                className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-md ${role === roleKey
                                     ? `${roleInfo.borderColor} bg-gradient-to-r ${roleInfo.color} bg-opacity-10`
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                  }`}
                                 onClick={() => setRole(roleKey as any)}
                               >
                                 <div className="flex items-start space-x-3">
@@ -364,8 +363,8 @@ export default function RegisterPage() {
                           </div>
                         </div>
 
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           onClick={nextStep}
                           className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                           disabled={!name || !email}
@@ -400,7 +399,7 @@ export default function RegisterPage() {
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
-                          
+
                           {/* Indicateur de force du mot de passe */}
                           {password && (
                             <div className="space-y-2">
@@ -439,16 +438,16 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="flex space-x-3">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             onClick={prevStep}
                             className="flex-1 h-12"
                           >
                             Retour
                           </Button>
-                          <Button 
-                            type="button" 
+                          <Button
+                            type="button"
                             onClick={nextStep}
                             className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                             disabled={!password || password !== confirmPassword}
@@ -485,8 +484,8 @@ export default function RegisterPage() {
                         {/* Conditions */}
                         <div className="space-y-3">
                           <div className="flex items-start space-x-3">
-                            <Checkbox 
-                              id="terms" 
+                            <Checkbox
+                              id="terms"
                               checked={agreedToTerms}
                               onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
                             />
@@ -504,16 +503,16 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="flex space-x-3">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             onClick={prevStep}
                             className="flex-1 h-12"
                           >
                             Retour
                           </Button>
-                          <Button 
-                            type="submit" 
+                          <Button
+                            type="submit"
                             className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                             disabled={isLoading || !agreedToTerms}
                           >
@@ -533,7 +532,7 @@ export default function RegisterPage() {
                         <div>
                           <h3 className="text-2xl font-bold text-gray-900 mb-2">Inscription réussie !</h3>
                           <p className="text-gray-600">
-                            Bienvenue dans l'aventure TechSupport Pro. Redirection en cours...
+                            Bienvenue dans l'aventure Helpyx. Redirection en cours...
                           </p>
                         </div>
                         <div className="space-y-2">
@@ -554,8 +553,8 @@ export default function RegisterPage() {
                   {currentStep < 4 && (
                     <div className="text-center text-sm text-gray-600 pt-4 border-t">
                       Déjà un compte ?{' '}
-                      <Link 
-                        href="/auth/signin" 
+                      <Link
+                        href="/auth/signin"
                         className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                       >
                         Se connecter

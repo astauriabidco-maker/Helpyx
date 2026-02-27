@@ -14,11 +14,12 @@ const createCommentSchema = z.object({
 // GET - Récupérer tous les commentaires d'un ticket
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ticketId = parseInt(params.id);
-    
+    const { id } = await params;
+    const ticketId = parseInt(id);
+
     if (isNaN(ticketId)) {
       return NextResponse.json(
         { error: 'ID de ticket invalide' },
@@ -61,12 +62,13 @@ export async function GET(
 // POST - Ajouter un commentaire à un ticket
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const ticketId = parseInt(params.id);
+    const { id } = await params;
+    const ticketId = parseInt(id);
     const userId = request.headers.get('x-user-id');
-    
+
     if (isNaN(ticketId)) {
       return NextResponse.json(
         { error: 'ID de ticket invalide' },
@@ -127,7 +129,7 @@ export async function POST(
     });
 
     // Créer des notifications pour les personnes concernées
-    const notifications = [];
+    const notifications: any[] = [];
 
     // Notifier le créateur du ticket (si ce n'est pas lui qui commente)
     if (ticket.userId !== userId) {
@@ -162,11 +164,11 @@ export async function POST(
     const io = getServer();
     if (io) {
       notifyCommentAdded(
-        io, 
-        ticketId.toString(), 
-        `TICKET-${ticketId.toString().padStart(6, '0')}`, 
-        comment, 
-        ticket.assignedToId
+        io,
+        ticketId.toString(),
+        `TICKET-${ticketId.toString().padStart(6, '0')}`,
+        comment,
+        ticket.assignedToId ?? undefined
       );
     }
 
@@ -191,10 +193,10 @@ export async function POST(
 
   } catch (error) {
     console.error('Erreur lors de l\'ajout du commentaire:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

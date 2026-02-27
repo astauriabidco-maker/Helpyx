@@ -32,8 +32,8 @@ class SMSService {
     };
 
     this.isEnabled = !!(
-      this.config.accountSid && 
-      this.config.authToken && 
+      this.config.accountSid &&
+      this.config.authToken &&
       this.config.fromNumber
     );
 
@@ -52,6 +52,7 @@ class SMSService {
 
     try {
       // Importer Twilio uniquement si le service est configuré
+      // @ts-ignore - twilio is an optional dependency
       const { default: twilio } = await import('twilio');
       const client = twilio(this.config.accountSid, this.config.authToken);
 
@@ -70,13 +71,13 @@ class SMSService {
 
     } catch (error) {
       console.error('SMS Service: Erreur envoi SMS:', error);
-      
+
       // Logger l'erreur
       await this.logSMS(message, false, undefined, error as Error);
 
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur inconnue' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
       };
     }
   }
@@ -97,9 +98,9 @@ class SMSService {
   }
 
   private async logSMS(
-    message: SMSMessage, 
-    success: boolean, 
-    sid?: string, 
+    message: SMSMessage,
+    success: boolean,
+    sid?: string,
     error?: Error
   ): Promise<void> {
     try {
@@ -111,7 +112,7 @@ class SMSService {
           status: success ? 'sent' : 'failed',
           sid: sid,
           error: error?.message,
-          ticketId: message.ticketId,
+          ticketId: message.ticketId ? parseInt(message.ticketId as string, 10) || null : null,
           userId: message.userId,
           type: message.type || 'general',
           sentAt: new Date(),
@@ -125,7 +126,7 @@ class SMSService {
   // Méthodes spécifiques pour les notifications de tickets
   async notifyTicketAssigned(userPhone: string, ticketId: string, ticketNumber: string): Promise<void> {
     const message = `IT Support: Nouveau ticket ${ticketNumber} vous a été assigné. Veuillez consulter votre tableau de bord.`;
-    
+
     await this.sendSMS({
       to: userPhone,
       body: message,
@@ -137,7 +138,7 @@ class SMSService {
   async notifyTicketUpdated(userPhone: string, ticketId: string, ticketNumber: string, status: string): Promise<void> {
     const statusText = this.getStatusText(status);
     const message = `IT Support: Votre ticket ${ticketNumber} a été mis à jour - Statut: ${statusText}`;
-    
+
     await this.sendSMS({
       to: userPhone,
       body: message,
@@ -148,7 +149,7 @@ class SMSService {
 
   async notifyTicketClosed(userPhone: string, ticketId: string, ticketNumber: string): Promise<void> {
     const message = `IT Support: Votre ticket ${ticketNumber} a été résolu. Merci de votre patience.`;
-    
+
     await this.sendSMS({
       to: userPhone,
       body: message,
@@ -160,7 +161,7 @@ class SMSService {
   async notifyUrgentTicket(userPhone: string, ticketId: string, ticketNumber: string, description: string): Promise<void> {
     const shortDesc = description.length > 100 ? description.substring(0, 100) + '...' : description;
     const message = `URGENT IT Support: Ticket critique ${ticketNumber}: ${shortDesc}. Intervention requise immédiatement.`;
-    
+
     await this.sendSMS({
       to: userPhone,
       body: message,
@@ -171,7 +172,7 @@ class SMSService {
 
   async notifyAgentOnCall(agentPhone: string, message: string): Promise<void> {
     const smsMessage = `IT Support: ${message}`;
-    
+
     await this.sendSMS({
       to: agentPhone,
       body: smsMessage,
@@ -274,19 +275,19 @@ class SMSService {
     try {
       const { default: twilio } = await import('twilio');
       const client = twilio(this.config!.accountSid, this.config!.authToken);
-      
+
       // Vérifier le compte
       const account = await client.api.accounts(this.config!.accountSid).fetch();
-      
-      return { 
+
+      return {
         valid: true,
         error: undefined
       };
 
     } catch (error) {
-      return { 
-        valid: false, 
-        error: error instanceof Error ? error.message : 'Erreur configuration Twilio' 
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Erreur configuration Twilio'
       };
     }
   }
@@ -307,12 +308,12 @@ class SMSService {
   private formatPhoneNumber(phone: string): string {
     // Supprimer tous les caractères non numériques
     let cleaned = phone.replace(/\D/g, '');
-    
+
     // Ajouter le préfixe international si nécessaire
     if (cleaned.startsWith('0') && cleaned.length === 10) {
       cleaned = '33' + cleaned.substring(1); // France
     }
-    
+
     return '+' + cleaned;
   }
 }
@@ -323,7 +324,7 @@ export const smsService = new SMSService();
 // Fonctions pour les workflows
 export const sendSMSNotification = async (userId: string, type: string, data: any) => {
   const { sendSMS } = await import('./sms-service');
-  
+
   switch (type) {
     case 'ticket_assigned':
       await sendSMS.notifyTicketAssigned(
@@ -332,7 +333,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
         data.ticketNumber
       );
       break;
-      
+
     case 'ticket_updated':
       await sendSMS.notifyTicketUpdated(
         data.userPhone,
@@ -341,7 +342,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
         data.status
       );
       break;
-      
+
     case 'ticket_closed':
       await sendSMS.notifyTicketClosed(
         data.userPhone,
@@ -349,7 +350,7 @@ export const sendSMSNotification = async (userId: string, type: string, data: an
         data.ticketNumber
       );
       break;
-      
+
     case 'urgent':
       await sendSMS.notifyUrgentTicket(
         data.userPhone,

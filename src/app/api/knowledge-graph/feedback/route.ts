@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KnowledgeGraphEngine } from '@/lib/knowledge-graph';
-import ZAI from 'z-ai-web-dev-sdk';
 import { Entity, Relation, EntityType, RelationType } from '@/types/knowledge-graph';
 
 // Instance singleton du moteur
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const engine = getKnowledgeGraphEngine();
-    const zai = await ZAI.create();
+    const ZAI = (await import('z-ai-web-dev-sdk')).default; const zai = await ZAI.create();
 
     switch (action) {
       case 'submit-feedback':
@@ -58,7 +57,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Feedback processing error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -109,7 +108,7 @@ async function submitFeedback(data: any, engine: KnowledgeGraphEngine, zai: any)
   } catch (error) {
     console.error('Submit feedback error:', error);
     return NextResponse.json(
-      { error: 'Failed to submit feedback', details: error.message },
+      { error: 'Failed to submit feedback', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -190,7 +189,7 @@ async function analyzeFeedback(feedbackEntry: any, zai: any) {
 
 async function updateGraphFromFeedback(feedbackEntry: any, insights: any, engine: KnowledgeGraphEngine) {
   try {
-    const updates = [];
+    const updates: any[] = [];
 
     // Mettre à jour la confiance des entités/relations
     if (feedbackEntry.type === 'entity' || feedbackEntry.type === 'relation') {
@@ -200,14 +199,14 @@ async function updateGraphFromFeedback(feedbackEntry: any, insights: any, engine
         const entity = engine.getGraph().entities.find(e => e.id === feedbackEntry.targetId);
         if (entity) {
           entity.confidence = Math.max(0.1, Math.min(1.0, entity.confidence + confidenceAdjustment));
-          entity.updatedAt = new Date();
+          (entity as any).updatedAt = new Date();
           updates.push({ type: 'entity', id: entity.id, newConfidence: entity.confidence });
         }
       } else if (feedbackEntry.type === 'relation') {
         const relation = engine.getGraph().relationships.find(r => r.id === feedbackEntry.targetId);
         if (relation) {
           relation.confidence = Math.max(0.1, Math.min(1.0, relation.confidence + confidenceAdjustment));
-          relation.updatedAt = new Date();
+          (relation as any).updatedAt = new Date();
           updates.push({ type: 'relation', id: relation.id, newConfidence: relation.confidence });
         }
       }
@@ -229,7 +228,7 @@ async function updateGraphFromFeedback(feedbackEntry: any, insights: any, engine
 
   } catch (error) {
     console.error('Graph update error:', error);
-    return { updates: [], totalUpdates: 0, error: error.message };
+    return { updates: [], totalUpdates: 0, error: (error as any).message };
   }
 }
 
@@ -276,7 +275,7 @@ async function applyRecommendedAction(action: any, feedbackEntry: any, engine: K
         return { success: false, message: 'Unknown action type' };
     }
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: (error as any).message };
   }
 }
 
@@ -291,7 +290,7 @@ async function updateConfidence(data: any, engine: KnowledgeGraphEngine) {
       const entity = engine.getGraph().entities.find(e => e.id === entityId);
       if (entity) {
         entity.confidence = Math.max(0.1, Math.min(1.0, newConfidence));
-        entity.updatedAt = new Date();
+        (entity as any).updatedAt = new Date();
         if (reason) {
           entity.properties = { ...entity.properties, confidenceUpdateReason: reason };
         }
@@ -304,7 +303,7 @@ async function updateConfidence(data: any, engine: KnowledgeGraphEngine) {
       const relation = engine.getGraph().relationships.find(r => r.id === relationId);
       if (relation) {
         relation.confidence = Math.max(0.1, Math.min(1.0, newConfidence));
-        relation.updatedAt = new Date();
+        (relation as any).updatedAt = new Date();
         if (reason) {
           relation.properties = { ...relation.properties, confidenceUpdateReason: reason };
         }
@@ -325,7 +324,7 @@ async function updateConfidence(data: any, engine: KnowledgeGraphEngine) {
   } catch (error) {
     console.error('Update confidence error:', error);
     return NextResponse.json(
-      { error: 'Failed to update confidence', details: error.message },
+      { error: 'Failed to update confidence', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -441,7 +440,7 @@ async function learnFromResolution(data: any, engine: KnowledgeGraphEngine, zai:
   } catch (error) {
     console.error('Learn from resolution error:', error);
     return NextResponse.json(
-      { error: 'Failed to learn from resolution', details: error.message },
+      { error: 'Failed to learn from resolution', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -511,7 +510,7 @@ async function applyLearnings(learnings: any, engine: KnowledgeGraphEngine, reso
       const entity = engine.getGraph().entities.find(e => e.id === reinforcement.entityId);
       if (entity) {
         entity.confidence = Math.max(0.1, Math.min(1.0, entity.confidence + reinforcement.adjustment));
-        entity.updatedAt = new Date();
+        (entity as any).updatedAt = new Date();
         entity.properties = { 
           ...entity.properties, 
           lastReinforcement: reinforcement.reason,
@@ -541,7 +540,7 @@ async function improveRelations(data: any, engine: KnowledgeGraphEngine, zai: an
   try {
     const { relations, feedback } = data;
 
-    const improvements = [];
+    const improvements: any[] = [];
 
     for (const relation of relations) {
       // Analyser chaque relation avec le feedback
@@ -594,7 +593,7 @@ async function improveRelations(data: any, engine: KnowledgeGraphEngine, zai: an
         if (relationObj) {
           relationObj.confidence = Math.max(0.1, Math.min(1.0, relationObj.confidence + improvement.confidenceAdjustment));
           relationObj.properties = { ...relationObj.properties, ...improvement.newProperties };
-          relationObj.updatedAt = new Date();
+          (relationObj as any).updatedAt = new Date();
         }
       }
     }
@@ -610,7 +609,7 @@ async function improveRelations(data: any, engine: KnowledgeGraphEngine, zai: an
   } catch (error) {
     console.error('Improve relations error:', error);
     return NextResponse.json(
-      { error: 'Failed to improve relations', details: error.message },
+      { error: 'Failed to improve relations', details: (error as any).message },
       { status: 500 }
     );
   }
@@ -650,7 +649,7 @@ async function validatePrediction(data: any, engine: KnowledgeGraphEngine) {
   } catch (error) {
     console.error('Validate prediction error:', error);
     return NextResponse.json(
-      { error: 'Failed to validate prediction', details: error.message },
+      { error: 'Failed to validate prediction', details: (error as any).message },
       { status: 500 }
     );
   }

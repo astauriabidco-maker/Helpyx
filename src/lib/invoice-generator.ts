@@ -4,36 +4,36 @@ import fs from 'fs';
 import path from 'path';
 
 interface InvoiceData {
-  id: string;
-  number: string;
-  company: {
-    name: string;
-    email: string;
-    address?: string;
-    phone?: string;
-  };
-  items: {
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    total: number;
-  }[];
-  amount: number;
-  tax?: number;
-  totalWithTax?: number;
-  dueDate: Date;
-  createdAt: Date;
-  status: string;
-  notes?: string;
+    id: string;
+    number: string;
+    company: {
+        name: string;
+        email: string;
+        address?: string;
+        phone?: string;
+    };
+    items: {
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        total: number;
+    }[];
+    amount: number;
+    tax?: number;
+    totalWithTax?: number;
+    dueDate: Date;
+    createdAt: Date;
+    status: string;
+    notes?: string;
 }
 
 export class InvoiceGenerator {
-  private static getInvoiceHTML(invoice: InvoiceData): string {
-    const subtotal = invoice.items.reduce((sum, item) => sum + item.total, 0);
-    const tax = invoice.tax || (subtotal * 0.2); // TVA 20%
-    const total = invoice.totalWithTax || (subtotal + tax);
+    private static getInvoiceHTML(invoice: InvoiceData): string {
+        const subtotal = invoice.items.reduce((sum, item) => sum + item.total, 0);
+        const tax = invoice.tax || (subtotal * 0.2); // TVA 20%
+        const total = invoice.totalWithTax || (subtotal + tax);
 
-    return `
+        return `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -85,10 +85,10 @@ export class InvoiceGenerator {
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
-            ${invoice.status === 'paid' ? 'background-color: #10b981; color: white;' : 
-              invoice.status === 'overdue' ? 'background-color: #ef4444; color: white;' :
-              invoice.status === 'sent' ? 'background-color: #3b82f6; color: white;' :
-              'background-color: #6b7280; color: white;'}
+            ${invoice.status === 'paid' ? 'background-color: #10b981; color: white;' :
+                invoice.status === 'overdue' ? 'background-color: #ef4444; color: white;' :
+                    invoice.status === 'sent' ? 'background-color: #3b82f6; color: white;' :
+                        'background-color: #6b7280; color: white;'}
         }
         .company-info {
             display: flex;
@@ -328,131 +328,131 @@ export class InvoiceGenerator {
     </div>
 </body>
 </html>`;
-  }
-
-  private static formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  }
-
-  private static formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  }
-
-  private static getStatusLabel(status: string): string {
-    const labels = {
-      draft: 'Brouillon',
-      sent: 'Envoyée',
-      paid: 'Payée',
-      overdue: 'En retard',
-      cancelled: 'Annulée'
-    };
-    return labels[status as keyof typeof labels] || status;
-  }
-
-  static async generatePDF(invoice: InvoiceData): Promise<Buffer> {
-    try {
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      
-      const page = await browser.newPage();
-      const html = this.getInvoiceHTML(invoice);
-      
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          right: '20px',
-          bottom: '20px',
-          left: '20px'
-        }
-      });
-      
-      await browser.close();
-      
-      return pdfBuffer;
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      throw new Error('Failed to generate PDF');
     }
-  }
 
-  static async generateAndSaveInvoice(subscriptionId: string): Promise<string> {
-    try {
-      // Récupérer les données de l'abonnement
-      const subscription = await db.subscription.findUnique({
-        where: { id: subscriptionId },
-        include: {
-          company: true,
-          plan: true
-        }
-      });
-
-      if (!subscription) {
-        throw new Error('Subscription not found');
-      }
-
-      // Générer le numéro de facture
-      const invoiceCount = await db.subscription.count();
-      const invoiceNumber = `INV-2024-${String(invoiceCount + 1).padStart(3, '0')}`;
-
-      // Préparer les données de la facture
-      const invoiceData: InvoiceData = {
-        id: `invoice_${subscription.id}_${Date.now()}`,
-        number: invoiceNumber,
-        company: {
-          name: subscription.company.nom,
-          email: subscription.company.emailContact,
-          address: `${subscription.company.ville || ''}, ${subscription.company.pays || ''}`,
-          phone: subscription.company.telephone || undefined
-        },
-        items: [
-          {
-            description: `${subscription.plan.nom} - Abonnement mensuel`,
-            quantity: 1,
-            unitPrice: subscription.prixMensuel,
-            total: subscription.prixMensuel
-          }
-        ],
-        amount: subscription.prixMensuel,
-        tax: subscription.prixMensuel * 0.2, // TVA 20%
-        totalWithTax: subscription.prixMensuel * 1.2,
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-        status: subscription.statut.toLowerCase(),
-        notes: 'Paiement dû dans les 30 jours. Merci de régler cette facture avant la date d\'échéance.'
-      };
-
-      // Générer le PDF
-      const pdfBuffer = await this.generatePDF(invoiceData);
-
-      // Sauvegarder le PDF (dans un système réel, on utiliserait S3 ou un autre stockage)
-      const uploadsDir = path.join(process.cwd(), 'public', 'invoices');
-      
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      const filename = `${invoiceNumber}.pdf`;
-      const filepath = path.join(uploadsDir, filename);
-      
-      fs.writeFileSync(filepath, pdfBuffer);
-
-      return `/invoices/${filename}`;
-    } catch (error) {
-      console.error('Error generating invoice:', error);
-      throw error;
+    private static formatCurrency(amount: number): string {
+        return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount);
     }
-  }
+
+    private static formatDate(date: Date): string {
+        return new Date(date).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+
+    private static getStatusLabel(status: string): string {
+        const labels = {
+            draft: 'Brouillon',
+            sent: 'Envoyée',
+            paid: 'Payée',
+            overdue: 'En retard',
+            cancelled: 'Annulée'
+        };
+        return labels[status as keyof typeof labels] || status;
+    }
+
+    static async generatePDF(invoice: InvoiceData): Promise<Buffer> {
+        try {
+            const browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            const html = this.getInvoiceHTML(invoice);
+
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '20px',
+                    right: '20px',
+                    bottom: '20px',
+                    left: '20px'
+                }
+            });
+
+            await browser.close();
+
+            return Buffer.from(pdfBuffer);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            throw new Error('Failed to generate PDF');
+        }
+    }
+
+    static async generateAndSaveInvoice(subscriptionId: string): Promise<string> {
+        try {
+            // Récupérer les données de l'abonnement
+            const subscription = await db.subscription.findUnique({
+                where: { id: subscriptionId },
+                include: {
+                    company: true,
+                    plan: true
+                }
+            });
+
+            if (!subscription) {
+                throw new Error('Subscription not found');
+            }
+
+            // Générer le numéro de facture
+            const invoiceCount = await db.subscription.count();
+            const invoiceNumber = `INV-2024-${String(invoiceCount + 1).padStart(3, '0')}`;
+
+            // Préparer les données de la facture
+            const invoiceData: InvoiceData = {
+                id: `invoice_${subscription.id}_${Date.now()}`,
+                number: invoiceNumber,
+                company: {
+                    name: subscription.company.nom,
+                    email: subscription.company.emailContact,
+                    address: `${subscription.company.ville || ''}, ${subscription.company.pays || ''}`,
+                    phone: subscription.company.telephone || undefined
+                },
+                items: [
+                    {
+                        description: `${subscription.plan.nom} - Abonnement mensuel`,
+                        quantity: 1,
+                        unitPrice: subscription.prixMensuel,
+                        total: subscription.prixMensuel
+                    }
+                ],
+                amount: subscription.prixMensuel,
+                tax: subscription.prixMensuel * 0.2, // TVA 20%
+                totalWithTax: subscription.prixMensuel * 1.2,
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                createdAt: new Date(),
+                status: subscription.statut.toLowerCase(),
+                notes: 'Paiement dû dans les 30 jours. Merci de régler cette facture avant la date d\'échéance.'
+            };
+
+            // Générer le PDF
+            const pdfBuffer = await this.generatePDF(invoiceData);
+
+            // Sauvegarder le PDF (dans un système réel, on utiliserait S3 ou un autre stockage)
+            const uploadsDir = path.join(process.cwd(), 'public', 'invoices');
+
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+
+            const filename = `${invoiceNumber}.pdf`;
+            const filepath = path.join(uploadsDir, filename);
+
+            fs.writeFileSync(filepath, pdfBuffer);
+
+            return `/invoices/${filename}`;
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+            throw error;
+        }
+    }
 }

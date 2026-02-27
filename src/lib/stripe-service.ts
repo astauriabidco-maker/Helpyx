@@ -1,8 +1,19 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-06-20',
-});
+let _stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    _stripe = new Stripe(key, {
+      apiVersion: '2024-06-20',
+    });
+  }
+  return _stripe;
+}
 
 interface CreatePaymentIntentParams {
   amount: number;
@@ -45,7 +56,7 @@ export class StripeService {
     description
   }: CreatePaymentIntentParams) {
     try {
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await getStripe().paymentIntents.create({
         amount: Math.round(amount * 100), // Stripe utilise les centimes
         currency,
         customer: customerId,
@@ -81,7 +92,7 @@ export class StripeService {
     metadata
   }: CreateCustomerParams) {
     try {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email,
         name,
         phone,
@@ -120,7 +131,7 @@ export class StripeService {
     metadata?: Record<string, string>;
   }) {
     try {
-      const price = await stripe.prices.create({
+      const price = await getStripe().prices.create({
         unit_amount: Math.round(amount * 100),
         currency,
         recurring: { interval },
@@ -155,7 +166,7 @@ export class StripeService {
     metadata?: Record<string, string>;
   }) {
     try {
-      const product = await stripe.products.create({
+      const product = await getStripe().products.create({
         name,
         description,
         type: 'service',
@@ -216,7 +227,7 @@ export class StripeService {
         };
       }
 
-      const session = await stripe.checkout.sessions.create(sessionParams);
+      const session = await getStripe().checkout.sessions.create(sessionParams);
 
       return {
         success: true,
@@ -249,7 +260,7 @@ export class StripeService {
     metadata?: Record<string, string>;
   }) {
     try {
-      const session = await stripe.checkout.sessions.create({
+      const session = await getStripe().checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
         mode: 'payment',
@@ -283,7 +294,7 @@ export class StripeService {
    */
   static async getCustomer(customerId: string) {
     try {
-      const customer = await stripe.customers.retrieve(customerId);
+      const customer = await getStripe().customers.retrieve(customerId);
       return {
         success: true,
         customer,
@@ -302,7 +313,7 @@ export class StripeService {
    */
   static async getCustomerSubscriptions(customerId: string) {
     try {
-      const subscriptions = await stripe.subscriptions.list({
+      const subscriptions = await getStripe().subscriptions.list({
         customer: customerId,
         status: 'all',
         limit: 100,
@@ -326,7 +337,7 @@ export class StripeService {
    */
   static async cancelSubscription(subscriptionId: string, immediate = false) {
     try {
-      const subscription = await stripe.subscriptions.update(subscriptionId, {
+      const subscription = await getStripe().subscriptions.update(subscriptionId, {
         cancel_at_period_end: !immediate,
         ...(immediate && { cancellation_details: { comment: 'Cancelled by user' } }),
       });
@@ -353,9 +364,9 @@ export class StripeService {
     prorationBehavior: 'create_prorations' | 'none' = 'create_prorations'
   ) {
     try {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      
-      const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+      const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+
+      const updatedSubscription = await getStripe().subscriptions.update(subscriptionId, {
         items: [
           {
             id: subscription.items.data[0].id,
@@ -389,7 +400,7 @@ export class StripeService {
     returnUrl: string;
   }) {
     try {
-      const session = await stripe.billingPortal.sessions.create({
+      const session = await getStripe().billingPortal.sessions.create({
         customer: customerId,
         return_url: returnUrl,
       });
@@ -415,7 +426,7 @@ export class StripeService {
     signature: string,
     secret: string
   ): Promise<Stripe.Event> {
-    return stripe.webhooks.constructEvent(payload, signature, secret);
+    return getStripe().webhooks.constructEvent(payload, signature, secret);
   }
 
   /**
@@ -423,7 +434,7 @@ export class StripeService {
    */
   static async getPaymentIntent(paymentIntentId: string) {
     try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const paymentIntent = await getStripe().paymentIntents.retrieve(paymentIntentId);
       return {
         success: true,
         paymentIntent,
@@ -442,7 +453,7 @@ export class StripeService {
    */
   static async confirmPaymentIntent(paymentIntentId: string) {
     try {
-      const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId);
+      const paymentIntent = await getStripe().paymentIntents.confirm(paymentIntentId);
       return {
         success: true,
         paymentIntent,

@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier si la session existe
-    const existingSession = await db.aRVRSessions.findUnique({
+    const existingSession = await db.aRVRSession.findUnique({
       where: { sessionId }
     });
 
     if (!existingSession) {
       // Créer une nouvelle session VR
-      const session = await db.aRVRSessions.create({
+      const session = await db.aRVRSession.create({
         data: {
           sessionId,
           type: 'vr',
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             vrMode: vrMode || 'standard',
             userAgent: request.headers.get('user-agent'),
-            ipAddress: request.ip || 'unknown',
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
             vrCapabilities: {
               hasHandTracking: true,
               hasRoomScale: true,
@@ -52,20 +52,22 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      const s = session as any;
       return NextResponse.json({
         success: true,
         session: {
-          id: session.id,
-          sessionId: session.sessionId,
-          type: session.type,
-          status: session.status,
-          startTime: session.startTime,
-          vrMode: session.metadata?.vrMode
+          id: s.id,
+          sessionId: s.sessionId,
+          type: s.type,
+          status: s.status,
+          startTime: s.startTime,
+          vrMode: s.metadata?.vrMode
         }
       });
     } else {
       // Mettre à jour la session existante
-      const updatedSession = await db.aRVRSessions.update({
+      const metadata = (existingSession.metadata as any) || {};
+      const updatedSession = await db.aRVRSession.update({
         where: { sessionId },
         data: {
           agentId: userType === 'agent' ? userId : existingSession.agentId,
@@ -73,21 +75,22 @@ export async function POST(request: NextRequest) {
           status: 'active',
           lastActivity: new Date(),
           metadata: {
-            ...existingSession.metadata,
-            vrMode: vrMode || existingSession.metadata?.vrMode
+            ...metadata,
+            vrMode: vrMode || metadata.vrMode
           }
         }
       });
 
+      const s = updatedSession as any;
       return NextResponse.json({
         success: true,
         session: {
-          id: updatedSession.id,
-          sessionId: updatedSession.sessionId,
-          type: updatedSession.type,
-          status: updatedSession.status,
-          startTime: updatedSession.startTime,
-          vrMode: updatedSession.metadata?.vrMode
+          id: s.id,
+          sessionId: s.sessionId,
+          type: s.type,
+          status: s.status,
+          startTime: s.startTime,
+          vrMode: s.metadata?.vrMode
         }
       });
     }
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const session = await db.aRVRSessions.findUnique({
+    const session = await db.aRVRSession.findUnique({
       where: { sessionId },
       include: {
         motionData: {
@@ -121,7 +124,7 @@ export async function GET(request: NextRequest) {
         },
         trainingSessions: {
           include: {
-            progress: true
+            progressSteps: true
           }
         }
       }
@@ -134,18 +137,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const s = session as any;
     return NextResponse.json({
       success: true,
       session: {
-        id: session.id,
-        sessionId: session.sessionId,
-        type: session.type,
-        status: session.status,
-        startTime: session.startTime,
-        lastActivity: session.lastActivity,
-        vrMode: session.metadata?.vrMode,
-        motionData: session.motionData,
-        trainingSessions: session.trainingSessions
+        id: s.id,
+        sessionId: s.sessionId,
+        type: s.type,
+        status: s.status,
+        startTime: s.startTime,
+        lastActivity: s.lastActivity,
+        vrMode: s.metadata?.vrMode,
+        motionData: s.motionData,
+        trainingSessions: s.trainingSessions
       }
     });
   } catch (error) {

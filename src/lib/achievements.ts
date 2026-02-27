@@ -183,20 +183,21 @@ export class AchievementService {
   static async initializeDefaultAchievements(): Promise<void> {
     try {
       for (const achievement of this.DEFAULT_ACHIEVEMENTS) {
-        await db.achievement.upsert({
-          where: { 
-            name: achievement.name 
-          },
-          update: {},
-          create: {
-            name: achievement.name,
-            description: achievement.description,
-            icon: achievement.icon,
-            points: achievement.points,
-            category: achievement.category,
-            target: achievement.target
-          }
+        const existing = await db.achievement.findFirst({
+          where: { name: achievement.name }
         });
+        if (!existing) {
+          await db.achievement.create({
+            data: {
+              name: achievement.name,
+              description: achievement.description,
+              icon: achievement.icon,
+              points: achievement.points,
+              category: achievement.category as any,
+              target: achievement.target
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error initializing achievements:', error);
@@ -210,7 +211,7 @@ export class AchievementService {
     try {
       // Récupérer tous les achievements
       const allAchievements = await db.achievement.findMany();
-      
+
       // Récupérer les achievements déjà débloqués
       const userAchievements = await db.userAchievement.findMany({
         where: { userId },
@@ -227,7 +228,7 @@ export class AchievementService {
         if (unlockedIds.has(achievement.id)) continue;
 
         const isUnlocked = await this.checkAchievementCondition(achievement, userStats);
-        
+
         if (isUnlocked) {
           // Débloquer l'achievement
           await db.userAchievement.create({
@@ -248,7 +249,7 @@ export class AchievementService {
             }
           });
 
-          unlockedAchievements.push(achievement);
+          unlockedAchievements.push(achievement as any);
         }
       }
     } catch (error) {
@@ -260,7 +261,7 @@ export class AchievementService {
 
   // Vérifier la condition d'un achievement spécifique
   private static async checkAchievementCondition(
-    achievement: any, 
+    achievement: any,
     userStats: any
   ): Promise<boolean> {
     const { name, target } = achievement;
@@ -268,22 +269,22 @@ export class AchievementService {
     switch (name) {
       case "Premier Ticket":
         return userStats.totalTicketsResolved >= 1;
-      
+
       case "Novice":
         return userStats.totalTicketsResolved >= 10;
-      
+
       case "Vétéran":
         return userStats.totalTicketsResolved >= 100;
-      
+
       case "Légende":
         return userStats.totalTicketsResolved >= 1000;
 
       case "Expert Hardware":
         return userStats.hardwareTicketsResolved >= 25;
-      
+
       case "Gourou Software":
         return userStats.softwareTicketsResolved >= 25;
-      
+
       case "Maître Réseau":
         return userStats.networkTicketsResolved >= 15;
 
@@ -379,8 +380,8 @@ export class AchievementService {
 
   // Mettre à jour le progrès d'un achievement
   static async updateAchievementProgress(
-    userId: string, 
-    achievementId: string, 
+    userId: string,
+    achievementId: string,
     progress: number
   ) {
     return await db.userAchievement.upsert({

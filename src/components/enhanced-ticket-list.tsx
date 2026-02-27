@@ -6,24 +6,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Ticket, 
-  Update, 
-  MessageSquare, 
-  User, 
-  Calendar, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle, 
-  Settings, 
-  RefreshCw, 
+import {
+  Ticket as TicketIcon,
+  MessageSquare,
+  User,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  Settings,
+  RefreshCw,
   Search,
   Filter,
   Tag,
   Monitor,
   Laptop,
   Smartphone,
-  Printer
+  Printer,
+  Edit
 } from 'lucide-react';
 import { TicketUpdateForm } from './ticket-update-form';
 import { TicketComments } from './ticket-comments';
@@ -70,10 +70,10 @@ interface EnhancedTicketListProps {
   canManageTickets: boolean;
 }
 
-export function EnhancedTicketList({ 
-  currentUserRole, 
-  currentUserId, 
-  canManageTickets 
+export function EnhancedTicketList({
+  currentUserRole,
+  currentUserId,
+  canManageTickets
 }: EnhancedTicketListProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -185,7 +185,7 @@ export function EnhancedTicketList({
 
   const getEquipmentIcon = (type?: string) => {
     if (!type) return <Monitor className="h-4 w-4" />;
-    
+
     const lowerType = type.toLowerCase();
     if (lowerType.includes('portable') || lowerType.includes('laptop')) {
       return <Laptop className="h-4 w-4" />;
@@ -251,7 +251,7 @@ export function EnhancedTicketList({
                 className="pl-10"
               />
             </div>
-            
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Statut" />
@@ -306,7 +306,7 @@ export function EnhancedTicketList({
         <TicketUpdateForm
           ticket={selectedTicket}
           agents={agents}
-          onUpdate={handleTicketUpdate}
+          onUpdate={handleTicketUpdate as any}
           onCancel={() => {
             setShowUpdateForm(false);
             setSelectedTicket(null);
@@ -322,11 +322,11 @@ export function EnhancedTicketList({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Ticket className="h-5 w-5" />
+                <TicketIcon className="h-5 w-5" />
                 Tickets ({filteredTickets.length})
               </CardTitle>
               <CardDescription>
-                {canManageTickets 
+                {canManageTickets
                   ? "Gérez tous les tickets des clients"
                   : "Suivez l'état de vos demandes"
                 }
@@ -337,7 +337,7 @@ export function EnhancedTicketList({
         <CardContent>
           {filteredTickets.length === 0 ? (
             <div className="text-center py-12">
-              <Ticket className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <TicketIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
                 {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all'
                   ? 'Aucun ticket ne correspond à vos filtres'
@@ -439,11 +439,11 @@ export function EnhancedTicketList({
                             setShowUpdateForm(true);
                           }}
                         >
-                          <Update className="h-4 w-4 mr-1" />
+                          <Edit className="h-4 w-4 mr-1" />
                           Mettre à jour
                         </Button>
                       )}
-                      
+
                       <Button
                         size="sm"
                         variant="ghost"
@@ -459,7 +459,7 @@ export function EnhancedTicketList({
                   {showComments === ticket.id && (
                     <div className="mt-4 pt-4 border-t">
                       <TicketComments
-                        ticketId={ticket.id}
+                        ticketId={String(ticket.id)}
                         currentUserRole={currentUserRole}
                         currentUserId={currentUserId}
                       />

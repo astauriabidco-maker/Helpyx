@@ -8,10 +8,10 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Brain, 
-  Camera, 
-  Scan, 
+import {
+  Brain,
+  Camera,
+  Scan,
   Search,
   Eye,
   Target,
@@ -41,7 +41,8 @@ import {
   Filter,
   BarChart3,
   TrendingUp,
-  Activity
+  Activity,
+  Box
 } from 'lucide-react';
 
 interface RecognizedObject {
@@ -113,15 +114,15 @@ export default function ARRecognition() {
 
   const startScanning = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsScanning(true);
-        
+
         // Start recognition simulation
         simulateRecognition();
       }
@@ -135,13 +136,13 @@ export default function ARRecognition() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    
+
     setIsScanning(false);
-    
+
     // Save session
     if (currentObjects.length > 0) {
       const session: RecognitionSession = {
@@ -166,11 +167,11 @@ export default function ARRecognition() {
       }
 
       // Simulate object detection
-      const objectTypes = recognitionMode === 'equipment' 
+      const objectTypes = recognitionMode === 'equipment'
         ? equipmentTypes.map(e => e.name)
         : recognitionMode === 'fault'
-        ? faultTypes.map(f => f.name)
-        : ['Température élevée', 'Humidité', 'Poussière', 'Lumière faible'];
+          ? faultTypes.map(f => f.name)
+          : ['Température élevée', 'Humidité', 'Poussière', 'Lumière faible'];
 
       const newObject: RecognizedObject = {
         id: 'obj_' + Date.now() + '_' + Math.random(),
@@ -210,7 +211,7 @@ export default function ARRecognition() {
       'Remplacer les câbles',
       'Vérifier l\'alimentation'
     ];
-    
+
     return suggestions.sort(() => Math.random() - 0.5).slice(0, 3);
   };
 
@@ -304,7 +305,7 @@ export default function ARRecognition() {
                         className="w-full h-full object-cover"
                       />
                       <canvas ref={canvasRef} className="hidden" />
-                      
+
                       {/* Recognition Overlay */}
                       <div className="absolute inset-0 pointer-events-none">
                         {currentObjects.map((obj) => (
@@ -327,7 +328,7 @@ export default function ARRecognition() {
                             </div>
                           </div>
                         ))}
-                        
+
                         {/* Scanning effect */}
                         <div className="absolute inset-0 pointer-events-none">
                           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
@@ -348,7 +349,7 @@ export default function ARRecognition() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Controls */}
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex gap-2">
@@ -396,9 +397,8 @@ export default function ARRecognition() {
                     {currentObjects.map((obj) => (
                       <div
                         key={obj.id}
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedObject?.id === obj.id ? 'border-purple-500 bg-purple-50' : 'hover:bg-muted/50'
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedObject?.id === obj.id ? 'border-purple-500 bg-purple-50' : 'hover:bg-muted/50'
+                          }`}
                         onClick={() => setSelectedObject(obj)}
                       >
                         <div className="flex items-center justify-between">
@@ -424,7 +424,7 @@ export default function ARRecognition() {
                             </Badge>
                           </div>
                         </div>
-                        
+
                         {obj.attributes.temperature && (
                           <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                             <span>Temp: {obj.attributes.temperature}°C</span>
@@ -471,7 +471,7 @@ export default function ARRecognition() {
                         ))}
                       </div>
                     </div>
-                    
+
                     <Button variant="outline" size="sm" className="w-full">
                       <Brain className="w-4 h-4 mr-2" />
                       Analyse approfondie
@@ -501,7 +501,7 @@ export default function ARRecognition() {
                   </div>
                   <Progress value={processingPower} className="h-2" />
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Précision</span>
@@ -509,7 +509,7 @@ export default function ARRecognition() {
                   </div>
                   <Progress value={accuracy} className="h-2" />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-blue-500">{currentObjects.length}</p>

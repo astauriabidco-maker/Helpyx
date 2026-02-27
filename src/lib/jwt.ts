@@ -33,7 +33,7 @@ export class JWTService {
   // Génère un token d'accès
   static generateAccessToken(payload: JWTPayload): string {
     return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+      expiresIn: JWT_EXPIRES_IN as any,
       issuer: 'techsupport',
       audience: 'techsupport-users'
     });
@@ -42,7 +42,7 @@ export class JWTService {
   // Génère un token de rafraîchissement
   static generateRefreshToken(payload: { userId: string; email: string }): string {
     return jwt.sign(payload, JWT_REFRESH_SECRET, {
-      expiresIn: JWT_REFRESH_EXPIRES_IN,
+      expiresIn: JWT_REFRESH_EXPIRES_IN as any,
       issuer: 'techsupport',
       audience: 'techsupport-refresh'
     });

@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GamificationService } from '@/lib/gamification';
+import { requireTenant } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
+    // Multi-tenant: auth requise
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
+    // Utiliser l'utilisateur connecté
+    const activities = await GamificationService.getUserActivities(ctx.user.id, limit);
 
-    const activities = await GamificationService.getUserActivities(userId, limit);
-    
     return NextResponse.json({ activities });
   } catch (error) {
     console.error('Error fetching activities:', error);

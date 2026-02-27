@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireTenant } from '@/lib/tenant';
 
 const createInventorySchema = z.object({
   nom: z.string().min(1),
@@ -15,59 +16,16 @@ const createInventorySchema = z.object({
   specifications: z.string().optional(),
 });
 
-// Helper function to get user company from session
-async function getUserCompany(request: NextRequest) {
-  // For development, return a default company
-  if (process.env.NODE_ENV === 'development') {
-    // Check if it's Vercel preview mode
-    const host = request.headers.get('host') || '';
-    const referer = request.headers.get('referer') || '';
-    
-    if (host.includes('vercel.app') || referer.includes('.space.z.ai')) {
-      // Create or get default company for preview mode
-      let company = await db.company.findFirst({
-        where: { slug: 'preview-company' }
-      });
-      
-      if (!company) {
-        company = await db.company.create({
-          data: {
-            nom: 'Preview Company',
-            slug: 'preview-company',
-            emailContact: 'preview@example.com',
-            statut: 'active',
-            planAbonnement: 'starter'
-          }
-        });
-      }
-      return company;
-    }
-  }
-
-  // In production, get company from authenticated user session
-  // This is a simplified version - you'd normally get this from NextAuth session
-  const companyId = request.headers.get('x-company-id');
-  if (companyId) {
-    return await db.company.findUnique({ where: { id: companyId } });
-  }
-
-  // Fallback to first company
-  return await db.company.findFirst();
-}
-
-// GET - Récupérer tous les articles du stock avec filtres
+// GET - Récupérer tous les articles du stock — isolés par entreprise
 export async function GET(request: NextRequest) {
   try {
-    const company = await getUserCompany(request);
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
-    }
+    // Multi-tenant: auth + isolation par entreprise
+    const [ctx, errorResponse] = await requireTenant();
+    if (errorResponse) return errorResponse;
+    const { companyId } = ctx;
 
     const { searchParams } = new URL(request.url);
-    
+
     const categorie = searchParams.get('categorie');
     const stockBas = searchParams.get('stockBas');
     const recherche = searchParams.get('recherche');
@@ -75,18 +33,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
+    // TOUJOURS filtré par companyId
     const where: any = {
-      companyId: company.id
+      companyId
     };
-    
+
     if (categorie) {
       where.categorie = categorie;
     }
-    
+
     if (stockBas === 'true') {
       where.quantite = { lte: db.inventory.fields.seuilAlerte };
     }
-    
+
     if (recherche) {
       where.OR = [
         { nom: { contains: recherche } },
@@ -147,16 +106,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Ajouter un nouvel article au stock
+// POST - Ajouter un nouvel article au stock — dans l'entreprise de l'utilisateur
 export async function POST(request: NextRequest) {
   try {
-    const company = await getUserCompany(request);
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
-    }
+    // Multi-tenant: auth + companyId
+    const [ctx, errorResponse] = await requireTenant({ requireRole: ['ADMIN', 'AGENT'] });
+    if (errorResponse) return errorResponse;
+    const { companyId } = ctx;
 
     const body = await request.json();
     const validatedData = createInventorySchema.parse(body);
@@ -164,12 +120,12 @@ export async function POST(request: NextRequest) {
     // Vérifier si la référence existe déjà pour cette company
     if (validatedData.reference) {
       const existing = await db.inventory.findFirst({
-        where: { 
+        where: {
           reference: validatedData.reference,
-          companyId: company.id
+          companyId
         }
       });
-      
+
       if (existing) {
         return NextResponse.json(
           { error: 'Cette référence existe déjà' },
@@ -181,7 +137,7 @@ export async function POST(request: NextRequest) {
     const item = await db.inventory.create({
       data: {
         ...validatedData,
-        companyId: company.id
+        companyId
       },
       include: {
         restockOrders: true,
