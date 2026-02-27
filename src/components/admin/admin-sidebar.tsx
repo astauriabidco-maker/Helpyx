@@ -57,6 +57,7 @@ const navSections = [
             { title: 'Articles KB', href: '/admin/articles', icon: BookOpen },
             { title: 'Knowledge Graph', href: '/knowledge-graph', icon: Brain },
             { title: 'Automatisations', href: '/admin/workflows', icon: Sparkles },
+            { title: 'Changements', href: '/admin/changes', icon: BarChart3 },
         ]
     },
     {
