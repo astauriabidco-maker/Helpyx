@@ -1,0 +1,25 @@
+{
+    "name": "helpyx-agent",
+    "version": "1.0.0",
+    "description": "Helpyx Network Discovery Agent — Scanne le réseau local et envoie l'inventaire au serveur Helpyx.",
+    "main": "dist/index.js",
+    "bin": {
+        "helpyx-agent": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "tsx src/index.ts",
+        "scan": "tsx src/index.ts scan",
+        "daemon": "tsx src/index.ts daemon"
+    },
+    "dependencies": {
+        "commander": "^12.0.0",
+        "node-fetch": "^3.3.2"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "tsx": "^4.20.0",
+        "@types/node": "^20.0.0"
+    }
+}
