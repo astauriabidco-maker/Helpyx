@@ -10,9 +10,26 @@ const updateInventorySchema = z.object({
   quantite: z.number().min(0).optional(),
   seuilAlerte: z.number().min(0).optional(),
   coutUnitaire: z.number().optional(),
+  prixVente: z.number().optional(),
   fournisseur: z.string().optional(),
   emplacement: z.string().optional(),
   specifications: z.string().optional(),
+  // Reconditionnement
+  grade: z.enum(['A', 'B', 'C', 'D']).optional(),
+  marque: z.string().optional(),
+  modele: z.string().optional(),
+  processeur: z.string().optional(),
+  ram: z.string().optional(),
+  stockage: z.string().optional(),
+  ecran: z.string().optional(),
+  systemeOs: z.string().optional(),
+  cosmetique: z.string().optional(),
+  batteryCycles: z.number().optional(),
+  batteryHealth: z.number().optional(),
+  dureeGarantie: z.number().optional(),
+  statut: z.string().optional(),
+  testeePar: z.string().optional(),
+  notesTest: z.string().optional(),
 });
 
 // GET - Récupérer un article spécifique
@@ -92,7 +109,7 @@ export async function PUT(
       const duplicate = await db.inventory.findUnique({
         where: { reference: validatedData.reference }
       });
-      
+
       if (duplicate) {
         return NextResponse.json(
           { error: 'Cette référence est déjà utilisée' },
