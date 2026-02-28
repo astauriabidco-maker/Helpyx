@@ -37,7 +37,9 @@ import {
     Monitor,
     Store,
     Sparkles,
-    Plug
+    Plug,
+    Stethoscope,
+    RotateCcw
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -55,6 +57,8 @@ const navSections = [
         label: 'Gestion',
         items: [
             { title: 'Inventaire', href: '/inventory', icon: Package },
+            { title: 'Audit Matériel', href: '/admin/audit', icon: Stethoscope },
+            { title: 'SAV / RMA', href: '/admin/rma', icon: RotateCcw },
             { title: 'Articles KB', href: '/admin/articles', icon: BookOpen },
             { title: 'Knowledge Graph', href: '/knowledge-graph', icon: Brain },
             { title: 'Automatisations', href: '/admin/workflows', icon: Sparkles },
