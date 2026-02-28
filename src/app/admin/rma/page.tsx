@@ -77,6 +77,16 @@ const DEMO_RMAS = [
         status: 'DEMANDE', motif: 'PC ne s\'allume plus depuis ce matin', categorieMotif: 'PANNE',
         sousGarantie: true, createdAt: new Date(Date.now() - 1 * 86400000).toISOString(),
     },
+    {
+        id: 'rma-demo-5', reference: 'RMA-2026-0005',
+        client: { name: 'Thomas Girard', email: 't.girard@freelance.com' },
+        inventory: { nom: 'Dell Latitude 5510', reference: 'INV-0312', marque: 'Dell', modele: 'Latitude 5510', grade: 'B' },
+        clientEquipment: { dateVente: '2024-09-15', numeroSerie: '7KX2M98', prixVendu: 429 },
+        status: 'EN_INSPECTION', motif: 'Charnière cassée côté droit, écran ne tient plus',
+        categorieMotif: 'COSMETIQUE', sousGarantie: false,
+        finGarantie: '2025-09-15',
+        createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    },
 ];
 
 export default function RmaPage() {
@@ -460,7 +470,23 @@ export default function RmaPage() {
                                         {/* Expanded */}
                                         {isExpanded && (
                                             <div className="px-6 pb-5 bg-gray-50/50 dark:bg-gray-800/10">
-                                                <div className="grid grid-cols-3 gap-4 pt-2">
+                                                {/* WARRANTY BANNER */}
+                                                <div className={`rounded-xl p-3 mb-4 flex items-center gap-3 ${rma.sousGarantie ? 'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800'}`}>
+                                                    <Shield className={`w-5 h-5 ${rma.sousGarantie ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                                    <div>
+                                                        <p className={`text-sm font-semibold ${rma.sousGarantie ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200'}`}>
+                                                            {rma.sousGarantie ? '✅ Sous garantie — Prise en charge gratuite' : '⚠️ Hors garantie — Réparation facturable au client'}
+                                                        </p>
+                                                        <p className={`text-xs ${rma.sousGarantie ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                            {rma.sousGarantie
+                                                                ? `Garantie valide${rma.finGarantie ? ` jusqu'au ${new Date(rma.finGarantie).toLocaleDateString('fr-FR')}` : ''} — réparation, remplacement ou remboursement sans frais`
+                                                                : 'Le client sera informé du coût estimé avant toute intervention. Un devis sera émis.'
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-4 gap-4 pt-1">
                                                     {/* Infos vente */}
                                                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                                                         <h4 className="text-xs font-medium text-gray-500 uppercase mb-3">Détails vente</h4>
@@ -480,11 +506,51 @@ export default function RmaPage() {
                                                                 <p className="text-gray-900 dark:text-white">{rma.diagnosticTech}</p>
                                                                 {rma.panneConfirmee !== undefined && <div><span className="text-gray-500">Panne confirmée :</span> <span className={rma.panneConfirmee ? 'text-red-600' : 'text-green-600'}>{rma.panneConfirmee ? 'Oui' : 'Non'}</span></div>}
                                                                 {rma.reparable !== undefined && <div><span className="text-gray-500">Réparable :</span> <span className={rma.reparable ? 'text-green-600' : 'text-red-600'}>{rma.reparable ? 'Oui' : 'Non'}</span></div>}
+                                                                {rma.coutReparation && <div><span className="text-gray-500">Coût réparation :</span> <span className="text-gray-900 dark:text-white font-medium">{rma.coutReparation} €</span></div>}
+                                                                {rma.pieceNecessaire && <div><span className="text-gray-500">Pièces :</span> <span className="text-gray-900 dark:text-white">{rma.pieceNecessaire}</span></div>}
                                                             </div>
                                                         ) : rma.motifRefus ? (
                                                             <div className="text-sm"><p className="text-red-600 font-medium">Motif du refus :</p><p className="text-gray-600 dark:text-gray-300 mt-1">{rma.motifRefus}</p></div>
                                                         ) : (
                                                             <p className="text-sm text-gray-400 italic">En attente d'inspection technique</p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Financier */}
+                                                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                                                        <h4 className="text-xs font-medium text-gray-500 uppercase mb-3">💰 Financier</h4>
+                                                        {rma.sousGarantie ? (
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-700 dark:text-emerald-300 text-xs">
+                                                                    Aucun frais pour le client
+                                                                </div>
+                                                                {rma.coutReparation && (
+                                                                    <div><span className="text-gray-500">Coût interne :</span> <span className="text-gray-900 dark:text-white">{rma.coutReparation} €</span></div>
+                                                                )}
+                                                                {rma.montantRembourse && (
+                                                                    <div><span className="text-gray-500">Remboursé :</span> <span className="text-emerald-600 font-semibold">{rma.montantRembourse} €</span></div>
+                                                                )}
+                                                                {rma.avoir && (
+                                                                    <div><span className="text-gray-500">Avoir émis :</span> <span className="text-blue-600 font-semibold">{rma.avoir} €</span></div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-700 dark:text-amber-300 text-xs">
+                                                                    Facturation au client
+                                                                </div>
+                                                                {rma.coutReparation ? (
+                                                                    <>
+                                                                        <div><span className="text-gray-500">Devis réparation :</span> <span className="text-gray-900 dark:text-white font-bold">{rma.coutReparation} €</span></div>
+                                                                        <div className='text-xs text-gray-400'>Ce montant sera facturé au client</div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="text-xs text-gray-400 italic">Devis en attente du diagnostic</div>
+                                                                )}
+                                                                {rma.montantRembourse && (
+                                                                    <div><span className="text-gray-500">Remboursé :</span> <span className="text-emerald-600 font-semibold">{rma.montantRembourse} €</span></div>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
 
@@ -496,18 +562,42 @@ export default function RmaPage() {
                                                         ) : nextStatuses.length > 0 ? (
                                                             <div className="space-y-2">
                                                                 {actionRmaId === rma.id && rma.status === 'EN_INSPECTION' ? (
-                                                                    /* Diagnostic form */
+                                                                    /* Diagnostic form with warranty-aware cost fields */
                                                                     <div className="space-y-2">
                                                                         <textarea placeholder="Résultat du diagnostic..." value={actionForm.diagnosticTech} onChange={e => setActionForm({ ...actionForm, diagnosticTech: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:bg-gray-800 dark:text-white resize-none" />
-                                                                        <div className="flex gap-2">
+                                                                        <div className="flex gap-3">
                                                                             <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={actionForm.panneConfirmee} onChange={e => setActionForm({ ...actionForm, panneConfirmee: e.target.checked })} /> Panne confirmée</label>
                                                                             <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={actionForm.reparable} onChange={e => setActionForm({ ...actionForm, reparable: e.target.checked })} /> Réparable</label>
                                                                         </div>
-                                                                        <div className="flex gap-1 flex-wrap">
-                                                                            <button onClick={() => handleStatusChange(rma.id, 'REPARE', { decision: 'REPARER', diagnosticTech: actionForm.diagnosticTech, panneConfirmee: actionForm.panneConfirmee, reparable: actionForm.reparable })} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700">🔧 Réparé</button>
-                                                                            <button onClick={() => handleStatusChange(rma.id, 'REMPLACEMENT', { decision: 'REMPLACER', diagnosticTech: actionForm.diagnosticTech })} className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700">🔄 Remplacer</button>
-                                                                            <button onClick={() => handleStatusChange(rma.id, 'REMBOURSE', { decision: 'REMBOURSER', diagnosticTech: actionForm.diagnosticTech })} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">💰 Rembourser</button>
-                                                                            <button onClick={() => setActionRmaId(null)} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50">Annuler</button>
+                                                                        {/* Cost fields — always shown for internal tracking, highlighted for out-of-warranty */}
+                                                                        <div className={`p-2 rounded-lg border ${!rma.sousGarantie ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                                                                            <div className="text-[11px] font-medium mb-1.5 uppercase tracking-wider" style={{ color: !rma.sousGarantie ? '#b45309' : '#6b7280' }}>
+                                                                                {!rma.sousGarantie ? '⚠️ Devis client (hors garantie)' : 'Coût interne (non facturé)'}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                <div>
+                                                                                    <label className="text-[10px] text-gray-400 block">Coût réparation (€)</label>
+                                                                                    <input type="number" step="0.01" value={actionForm.coutReparation} onChange={e => setActionForm({ ...actionForm, coutReparation: e.target.value })} placeholder="45.00" className="w-full px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm dark:bg-gray-800 dark:text-white" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label className="text-[10px] text-gray-400 block">Pièces nécessaires</label>
+                                                                                    <input value={actionForm.pieceNecessaire} onChange={e => setActionForm({ ...actionForm, pieceNecessaire: e.target.value })} placeholder="SSD 256Go, pâte thermique" className="w-full px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm dark:bg-gray-800 dark:text-white" />
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        {/* Remboursement field */}
+                                                                        <div className="flex items-center gap-2">
+                                                                            <label className="text-[10px] text-gray-400 whitespace-nowrap">Montant remboursé (€)</label>
+                                                                            <input type="number" step="0.01" value={actionForm.montantRembourse} onChange={e => setActionForm({ ...actionForm, montantRembourse: e.target.value })} placeholder={rma.clientEquipment?.prixVendu ? String(rma.clientEquipment.prixVendu) : '0'} className="w-24 px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm dark:bg-gray-800 dark:text-white" />
+                                                                        </div>
+                                                                        {/* Decision buttons */}
+                                                                        <div className="flex gap-1 flex-wrap pt-1">
+                                                                            <button onClick={() => handleStatusChange(rma.id, 'REPARE', { decision: 'REPARER', diagnosticTech: actionForm.diagnosticTech, panneConfirmee: actionForm.panneConfirmee, reparable: actionForm.reparable, coutReparation: parseFloat(actionForm.coutReparation) || null, pieceNecessaire: actionForm.pieceNecessaire || null })} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition">
+                                                                                🔧 {!rma.sousGarantie && actionForm.coutReparation ? `Réparé (${actionForm.coutReparation} € facturés)` : 'Réparé (gratuit)'}
+                                                                            </button>
+                                                                            <button onClick={() => handleStatusChange(rma.id, 'REMPLACEMENT', { decision: 'REMPLACER', diagnosticTech: actionForm.diagnosticTech, coutReparation: parseFloat(actionForm.coutReparation) || null })} className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition">🔄 Remplacer</button>
+                                                                            <button onClick={() => handleStatusChange(rma.id, 'REMBOURSE', { decision: 'REMBOURSER', diagnosticTech: actionForm.diagnosticTech, montantRembourse: parseFloat(actionForm.montantRembourse) || (rma.clientEquipment?.prixVendu || null) })} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition">💰 Rembourser</button>
+                                                                            <button onClick={() => setActionRmaId(null)} className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition">Annuler</button>
                                                                         </div>
                                                                     </div>
                                                                 ) : actionRmaId === rma.id && (rma.status === 'DEMANDE' || rma.status === 'APPROUVE') && nextStatuses.includes('REFUSE') ? (
