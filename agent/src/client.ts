@@ -171,7 +171,7 @@ export class HelpyxClient {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                const data: any = await response.json();
                 console.log(`✅ Résultats envoyés ! ${data.imported || results.hostCount} équipements importés.`);
                 return true;
             }
@@ -215,7 +215,7 @@ export class HelpyxClient {
             const url = `${this.config.serverUrl}/api/agents/${this.agentId}/commands`;
             const response = await fetch(url, { headers: this.headers });
             if (response.ok) {
-                const data = await response.json();
+                const data: any = await response.json();
                 return data.commands || [];
             }
         } catch { /* ignore */ }

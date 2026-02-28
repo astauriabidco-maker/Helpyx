@@ -1,7 +1,7 @@
 {
     "name": "helpyx-agent",
-    "version": "1.0.0",
-    "description": "Helpyx Network Discovery Agent — Scanne le réseau local et envoie l'inventaire au serveur Helpyx.",
+    "version": "1.1.0",
+    "description": "Helpyx Network Discovery & Hardware Audit Agent — Scanne le réseau, audite le matériel, envoie les résultats à Helpyx.",
     "main": "dist/index.js",
     "bin": {
         "helpyx-agent": "./dist/index.js"
@@ -11,7 +11,23 @@
         "start": "node dist/index.js",
         "dev": "tsx src/index.ts",
         "scan": "tsx src/index.ts scan",
-        "daemon": "tsx src/index.ts daemon"
+        "audit": "tsx src/index.ts audit",
+        "daemon": "tsx src/index.ts daemon",
+        "build:exe": "npm run build && npx pkg dist/index.js --targets node18-win-x64,node18-macos-x64,node18-linux-x64 --output dist-bin/helpyx-agent --compress GZip",
+        "build:exe:win": "npm run build && npx pkg dist/index.js --targets node18-win-x64 --output dist-bin/helpyx-agent.exe --compress GZip",
+        "build:exe:mac": "npm run build && npx pkg dist/index.js --targets node18-macos-x64 --output dist-bin/helpyx-agent-macos --compress GZip",
+        "build:exe:linux": "npm run build && npx pkg dist/index.js --targets node18-linux-x64 --output dist-bin/helpyx-agent-linux --compress GZip",
+        "package": "bash build.sh"
+    },
+    "pkg": {
+        "scripts": "dist/**/*.js",
+        "assets": [],
+        "targets": [
+            "node18-win-x64",
+            "node18-macos-x64",
+            "node18-linux-x64"
+        ],
+        "outputPath": "dist-bin"
     },
     "dependencies": {
         "commander": "^12.0.0",
@@ -20,6 +36,7 @@
     "devDependencies": {
         "typescript": "^5.0.0",
         "tsx": "^4.20.0",
-        "@types/node": "^20.0.0"
+        "@types/node": "^20.0.0",
+        "@yao-pkg/pkg": "^6.0.0"
     }
 }
