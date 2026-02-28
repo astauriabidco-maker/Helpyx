@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Providers } from '@/components/providers';
+import { ChatbotWidget } from '@/components/chatbot/chatbot-widget';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -91,6 +92,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
+            <ChatbotWidget />
           </ThemeProvider>
         </Providers>
       </body>
