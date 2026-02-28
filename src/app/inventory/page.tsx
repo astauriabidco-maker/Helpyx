@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import {
   Package, Plus, Search, Edit, Trash2, RefreshCw,
@@ -8,7 +9,7 @@ import {
   Monitor, Cpu, HardDrive, Battery, Stethoscope,
   ChevronDown, ChevronUp, Eye, Tag, MapPin, Hash,
   ShieldCheck, Shield, ShieldAlert, ShieldX,
-  Laptop, Server, Printer, Filter, X
+  Laptop, Server, Printer, Filter, X, RotateCcw
 } from 'lucide-react';
 
 // =============================================================
@@ -278,6 +279,22 @@ export default function InventoryPage() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  // Navigation for RMA creation
+  const router = useRouter();
+  const handleCreateRma = (item: InventoryItem) => {
+    const params = new URLSearchParams({
+      create: '1',
+      equipmentName: item.nom || '',
+      equipmentRef: item.reference || '',
+      marque: item.marque || '',
+      modele: item.modele || '',
+      grade: item.grade || '',
+      inventoryId: item.id || '',
+    });
+    if (item.prixVente) params.set('prixVendu', String(item.prixVente));
+    router.push(`/admin/rma?${params.toString()}`);
   };
 
   // Demo data for empty state
@@ -704,6 +721,11 @@ export default function InventoryPage() {
                           <button onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition" title="Supprimer">
                             <Trash2 className="w-4 h-4 text-red-400" />
                           </button>
+                          {item.statut !== 'rma' && (
+                            <button onClick={(e) => { e.stopPropagation(); handleCreateRma(item); }} className="p-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition" title="Créer un retour SAV">
+                              <RotateCcw className="w-4 h-4 text-orange-500" />
+                            </button>
+                          )}
                           {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                         </div>
                       </div>
@@ -720,6 +742,20 @@ export default function InventoryPage() {
                             <DetailCard label="Prix d'achat" value={item.coutUnitaire ? `${item.coutUnitaire} €` : undefined} />
                             <DetailCard label="Testé par" value={item.testeePar} />
                             <DetailCard label="Notes test" value={item.notesTest} />
+                          </div>
+                          {/* Quick action buttons */}
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            {item.statut !== 'rma' && item.statut !== 'rebut' && (
+                              <button onClick={() => handleCreateRma(item)}
+                                className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-medium hover:bg-orange-100 dark:hover:bg-orange-900/30 transition">
+                                <RotateCcw className="w-4 h-4" /> Créer un retour SAV
+                              </button>
+                            )}
+                            {item.statut === 'rma' && (
+                              <span className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-lg text-sm">
+                                <RotateCcw className="w-4 h-4" /> RMA en cours — <button onClick={() => router.push('/admin/rma')} className="underline hover:no-underline">Voir le dossier</button>
+                              </span>
+                            )}
                           </div>
                         </div>
                       )}

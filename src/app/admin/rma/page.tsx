@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import {
     RotateCcw, Search, RefreshCw, Plus, Clock, Package,
@@ -116,6 +117,22 @@ export default function RmaPage() {
     });
 
     useEffect(() => { fetchRmas(); }, []);
+
+    // Read URL params to auto-fill form (from inventory page shortcut)
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        if (searchParams.get('create') === '1') {
+            setShowCreateForm(true);
+            setCreateForm(prev => ({
+                ...prev,
+                equipmentName: searchParams.get('equipmentName') || prev.equipmentName,
+                equipmentRef: searchParams.get('equipmentRef') || prev.equipmentRef,
+                prixVendu: searchParams.get('prixVendu') || prev.prixVendu,
+            }));
+            // Clean URL without reload
+            window.history.replaceState({}, '', '/admin/rma');
+        }
+    }, [searchParams]);
 
     const fetchRmas = async () => {
         setLoading(true);
