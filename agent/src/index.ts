@@ -21,6 +21,7 @@
 
 import { Command } from 'commander';
 import { runFullScan, detectSubnet, getSystemInfo } from './scanner';
+import { runFullAudit } from './auditor';
 import { HelpyxClient, loadConfig, saveConfig, getDefaultConfig, getAgentId, AgentConfig } from './client';
 import * as readline from 'readline';
 import * as os from 'os';
@@ -31,7 +32,7 @@ const program = new Command();
 
 program
     .name('helpyx-agent')
-    .description('🔍 Helpyx Network Discovery Agent — Scanne votre réseau et envoie l\'inventaire à Helpyx')
+    .description('🔍 Helpyx Network Discovery & Hardware Audit Agent')
     .version(VERSION);
 
 // ============================================================
@@ -276,6 +277,51 @@ program
     });
 
 // ============================================================
+//  Commande: audit
+// ============================================================
+program
+    .command('audit')
+    .description('Lancer un audit complet de sant\u00e9 mat\u00e9riel de cette machine')
+    .option('-v, --verbose', 'Logs d\u00e9taill\u00e9s')
+    .option('-o, --output <file>', 'Sauvegarder les r\u00e9sultats dans un fichier JSON')
+    .option('--no-push', 'Ne pas envoyer les r\u00e9sultats au serveur')
+    .option('-i, --inventory-id <id>', 'ID de l\'\u00e9quipement dans l\'inventaire Helpyx')
+    .action(async (opts) => {
+        console.log('\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557');
+        console.log('\u2551       HELPYX AGENT \u2014 Audit Mat\u00e9riel           \u2551');
+        console.log('\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d');
+
+        const results = await runFullAudit({ verbose: opts.verbose });
+
+        // Afficher le rapport
+        printAuditReport(results);
+
+        // Sauvegarder si demand\u00e9
+        if (opts.output) {
+            const fs = await import('fs');
+            fs.writeFileSync(opts.output, JSON.stringify(results, null, 2));
+            console.log(`\n\ud83d\udcbe R\u00e9sultats sauvegard\u00e9s dans ${opts.output}`);
+        }
+
+        // Envoyer au serveur
+        if (opts.push !== false) {
+            const config = loadConfig();
+            if (config.apiToken) {
+                const client = new HelpyxClient(config);
+                try {
+                    const res = await (client as any).pushAuditResults(results, opts.inventoryId);
+                    console.log('\n\u2601\ufe0f  R\u00e9sultats envoy\u00e9s au serveur Helpyx !');
+                } catch (e: any) {
+                    console.log(`\n\u26a0\ufe0f  Envoi \u00e9chou\u00e9: ${e.message}`);
+                    console.log('   Les r\u00e9sultats seront renvoy\u00e9s au prochain "helpyx-agent push".');
+                }
+            } else {
+                console.log('\n\u26a0\ufe0f Pas de token API. Utilisez "helpyx-agent init" pour configurer.');
+            }
+        }
+    });
+
+// ============================================================
 //  Helpers
 // ============================================================
 
@@ -319,6 +365,50 @@ function printScanSummary(results: any) {
     for (const [type, count] of Object.entries(byType).sort((a, b) => b[1] - a[1])) {
         console.log(`    ${type}: ${count}`);
     }
+    console.log('');
+}
+
+function printAuditReport(results: any) {
+    const { hostname, fabricant, modele, numeroSerie, os: osName, scoreGlobal, verdict, components, duration } = results;
+
+    const verdictLabels: Record<string, string> = {
+        excellent: '🟢 EXCELLENT',
+        bon: '🔵 BON',
+        correct: '🟡 CORRECT',
+        attention: '🟠 ATTENTION',
+        critique: '🔴 CRITIQUE',
+    };
+
+    console.log('\n══════════════════════════════════════════════');
+    console.log(`🏥 RAPPORT DE SANTÉ MATÉRIEL`);
+    console.log('══════════════════════════════════════════════');
+    console.log(`  Machine:     ${fabricant || ''} ${modele || hostname}`);
+    if (numeroSerie) console.log(`  N° série:    ${numeroSerie}`);
+    console.log(`  OS:          ${osName}`);
+    console.log(`  Durée audit: ${duration.toFixed(1)}s`);
+    console.log('');
+
+    // Score global
+    const bar = '█'.repeat(Math.round(scoreGlobal / 5)) + '░'.repeat(20 - Math.round(scoreGlobal / 5));
+    console.log(`  Score global: ${bar} ${scoreGlobal}/100`);
+    console.log(`  Verdict:      ${verdictLabels[verdict] || verdict}`);
+    console.log('');
+
+    // Détails par composant
+    const header = '  Composant      Score  Status';
+    const sep = '  ───────────── ────── ──────────';
+    console.log(header);
+    console.log(sep);
+
+    for (const comp of components) {
+        const icon = comp.score >= 70 ? '✅' : comp.score >= 50 ? '⚠️' : '🔴';
+        const name = (comp.composant || '').padEnd(13);
+        const score = String(comp.score).padStart(3);
+        const compBar = '█'.repeat(Math.round(comp.score / 10)) + '░'.repeat(10 - Math.round(comp.score / 10));
+        console.log(`  ${name} ${score}/100 ${compBar} ${icon} ${comp.nom || ''}`);
+    }
+
+    console.log(sep);
     console.log('');
 }
 

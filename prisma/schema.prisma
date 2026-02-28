@@ -1608,3 +1608,127 @@ model RMA {
   
   @@map("rmas")
 }
+
+// ============================================================
+//  AUDIT MATÉRIEL — Diagnostic santé de chaque composant
+// ============================================================
+
+model HardwareAudit {
+  id              String   @id @default(cuid())
+  
+  // Quel équipement
+  inventoryId     String?
+  
+  // Infos machine
+  hostname        String?
+  fabricant       String?  // Dell, Lenovo, HP
+  modele          String?  // ThinkPad T480
+  numeroSerie     String?
+  biosVersion     String?
+  
+  // Système
+  os              String?  // Windows 11 Pro 23H2
+  osVersion       String?
+  architecture    String?  // x64, ARM64
+  uptime          Int?     // Heures depuis dernier redémarrage
+  
+  // Score global (moyenne pondérée des composants)
+  scoreGlobal     Int      @default(0) // 0-100
+  verdict         String   @default("non_teste") // excellent, bon, correct, attention, critique
+
+  // Qui a fait l'audit
+  auditeurId      String?
+  auditeurNom     String?
+  notes           String?  // Notes du technicien
+  
+  // Multi-tenant
+  companyId       String
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  // Composants audités
+  components      AuditComponent[]
+  
+  @@map("hardware_audits")
+}
+
+model AuditComponent {
+  id              String   @id @default(cuid())
+  auditId         String
+  audit           HardwareAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  
+  // Identification
+  composant       String   // CPU, RAM, SSD, HDD, BATTERY, SCREEN, GPU, NETWORK, FAN, KEYBOARD, TOUCHPAD, USB, WEBCAM, AUDIO
+  nom             String?  // Intel Core i5-8350U, Samsung SSD 860 EVO 256GB
+  
+  // Score de santé
+  score           Int      @default(0)  // 0-100
+  status          String   @default("non_teste") // excellent (90-100), bon (70-89), correct (50-69), attention (30-49), critique (0-29)
+  
+  // Métriques détaillées (JSON flexible)
+  metriques       String?  // JSON: {"temperature": 45, "usage": 12, "vitesse": 3200}
+  
+  // Détails spécifiques par type
+  // CPU
+  cpuModel        String?
+  cpuCores        Int?
+  cpuThreads      Int?
+  cpuFreqBase     Float?   // GHz
+  cpuFreqMax      Float?   // GHz
+  cpuTemperature  Float?   // °C
+  cpuUsage        Float?   // %
+  
+  // RAM
+  ramTotal        Float?   // Go
+  ramUsed         Float?   // Go
+  ramType         String?  // DDR4, DDR5
+  ramSpeed        Int?     // MHz
+  ramSlots        Int?
+  ramSlotsUsed    Int?
+  ramErrors       Int?     @default(0)
+  
+  // Stockage (SSD/HDD)
+  storageTotal    Float?   // Go
+  storageUsed     Float?   // Go
+  storageType     String?  // SSD, HDD, NVMe
+  storageHealth   Int?     // % SMART health
+  storageTBW      Float?   // Terabytes Written (SSD)
+  storageTemp     Float?   // °C
+  storageBadSectors Int?   @default(0)
+  storageReadSpeed  Float? // Mo/s
+  storageWriteSpeed Float? // Mo/s
+  
+  // Batterie
+  batteryCapacity Float?   // mWh design
+  batteryActual   Float?   // mWh actuel
+  batteryHealth   Int?     // % (actuel/design * 100)
+  batteryCycles   Int?
+  batteryStatus   String?  // charging, discharging, full
+  
+  // Écran
+  screenResolution String? // 1920x1080
+  screenSize       String? // 14"
+  screenType       String? // IPS, TN, OLED
+  screenDeadPixels Int?    @default(0)
+  screenBrightness Int?    // % max fonctionnel
+  
+  // GPU
+  gpuModel        String?
+  gpuVram         Float?   // Go
+  gpuTemp         Float?   // °C
+  gpuDriverVersion String?
+  
+  // Réseau
+  networkType     String?  // Ethernet, WiFi
+  networkSpeed    Float?   // Mbps
+  networkLatency  Float?   // ms
+  wifiSignal      Int?     // dBm
+  
+  // Périphériques
+  testResult      String?  // OK, FAIL, PARTIAL
+  testDetails     String?  // Détails du test
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("audit_components")
+}
