@@ -4,7 +4,9 @@ import { z } from 'zod';
 
 const discoverySchema = z.object({
   type: z.enum(['network', 'bluetooth', 'usb', 'manual']),
-  range: z.string().optional(), // IP range for network discovery
+  range: z.string().optional(),
+  scanPorts: z.boolean().optional(),
+  maxHosts: z.number().optional(),
   filters: z.object({
     deviceTypes: z.array(z.string()).optional(),
     manufacturers: z.array(z.string()).optional(),
@@ -17,12 +19,12 @@ async function getUserCompany(request: NextRequest) {
   if (process.env.NODE_ENV === 'development') {
     const host = request.headers.get('host') || '';
     const referer = request.headers.get('referer') || '';
-    
+
     if (host.includes('vercel.app') || referer.includes('.space.z.ai')) {
       let company = await db.company.findFirst({
         where: { slug: 'preview-company' }
       });
-      
+
       if (!company) {
         company = await db.company.create({
           data: {
@@ -46,265 +48,121 @@ async function getUserCompany(request: NextRequest) {
   return await db.company.findFirst();
 }
 
-// Network discovery simulation
-async function discoverNetworkDevices(range?: string) {
-  // Simuler la découverte réseau avec des données réalistes
-  const mockDevices = [
-    {
-      nom: 'PC-Bureau-001',
-      ipAddress: '192.168.1.101',
-      macAddress: '00:1A:2B:3C:4D:5E',
-      manufacturer: 'Dell Inc.',
-      modele: 'OptiPlex 7090',
-      type: 'ordinateur',
-      os: 'Windows 11 Pro',
-      osVersion: '22H2',
-      cpu: 'Intel Core i7-11700',
-      ram: '16GB DDR4',
-      stockage: '512GB NVMe SSD',
-      statut: 'online',
-      lastSeen: new Date(),
-      ports: [22, 80, 443, 3389],
-      services: ['SSH', 'HTTP', 'HTTPS', 'RDP']
-    },
-    {
-      nom: 'Imprimante-Etage1',
-      ipAddress: '192.168.1.105',
-      macAddress: 'AA:BB:CC:DD:EE:FF',
-      manufacturer: 'HP',
-      modele: 'LaserJet Pro M404n',
-      type: 'imprimante',
-      os: 'Embedded OS',
-      osVersion: '3.2.1',
-      statut: 'online',
-      lastSeen: new Date(),
-      ports: [80, 443, 9100],
-      services: ['HTTP', 'HTTPS', 'IPP']
-    },
-    {
-      nom: 'Switch-Core-01',
-      ipAddress: '192.168.1.10',
-      macAddress: '11:22:33:44:55:66',
-      manufacturer: 'Cisco Systems',
-      modele: 'Catalyst 2960-X',
-      type: 'switch',
-      os: 'Cisco IOS',
-      osVersion: '15.2(4)E7',
-      statut: 'online',
-      lastSeen: new Date(),
-      ports: [22, 23, 80],
-      services: ['SSH', 'Telnet', 'HTTP']
-    },
-    {
-      nom: 'Serveur-APP-01',
-      ipAddress: '192.168.1.50',
-      macAddress: '77:88:99:AA:BB:CC',
-      manufacturer: 'HPE',
-      modele: 'ProLiant DL380 Gen10',
-      type: 'serveur',
-      os: 'Ubuntu Server',
-      osVersion: '22.04 LTS',
-      cpu: 'Intel Xeon Silver 4210',
-      ram: '64GB DDR4',
-      stockage: '2TB RAID10',
-      statut: 'online',
-      lastSeen: new Date(),
-      ports: [22, 80, 443, 3306],
-      services: ['SSH', 'HTTP', 'HTTPS', 'MySQL']
-    },
-    {
-      nom: 'Routeur-Principal',
-      ipAddress: '192.168.1.1',
-      macAddress: 'DD:EE:FF:00:11:22',
-      manufacturer: 'TP-Link',
-      modele: 'Archer AX6000',
-      type: 'routeur',
-      os: 'OpenWrt',
-      osVersion: '21.02.3',
-      statut: 'online',
-      lastSeen: new Date(),
-      ports: [22, 80, 443],
-      services: ['SSH', 'HTTP', 'HTTPS']
-    },
-    {
-      nom: 'PC-Portable-015',
-      ipAddress: '192.168.1.120',
-      macAddress: '33:44:55:66:77:88',
-      manufacturer: 'Apple Inc.',
-      modele: 'MacBook Pro 14"',
-      type: 'ordinateur',
-      os: 'macOS',
-      osVersion: 'Ventura 13.4',
-      cpu: 'Apple M2 Pro',
-      ram: '32GB Unified',
-      stockage: '1TB SSD',
-      statut: 'offline',
-      lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 heures ago
-      ports: [],
-      services: []
-    }
-  ];
-
-  // Simuler un délai de scan
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  return mockDevices;
-}
-
-// Bluetooth discovery simulation
-async function discoverBluetoothDevices() {
-  const mockDevices = [
-    {
-      nom: 'Souris-Bluetooth-001',
-      macAddress: 'AA:BB:CC:DD:EE:01',
-      manufacturer: 'Logitech',
-      modele: 'MX Master 3',
-      type: 'souris',
-      statut: 'connected',
-      lastSeen: new Date(),
-      batteryLevel: 85
-    },
-    {
-      nom: 'Clavier-Bluetooth-002',
-      macAddress: 'AA:BB:CC:DD:EE:02',
-      manufacturer: 'Apple',
-      modele: 'Magic Keyboard',
-      type: 'clavier',
-      statut: 'connected',
-      lastSeen: new Date(),
-      batteryLevel: 92
-    },
-    {
-      nom: 'Casque-Audio-003',
-      macAddress: 'AA:BB:CC:DD:EE:03',
-      manufacturer: 'Sony',
-      modele: 'WH-1000XM4',
-      type: 'casque_audio',
-      statut: 'disconnected',
-      lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-      batteryLevel: 45
-    }
-  ];
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  return mockDevices;
-}
-
-// USB discovery simulation
-async function discoverUSBDevices() {
-  const mockDevices = [
-    {
-      nom: 'USB-Stick-001',
-      manufacturer: 'SanDisk',
-      modele: 'Ultra 64GB',
-      type: 'stockage_usb',
-      serialNumber: '4C530001191019114610',
-      statut: 'connected',
-      lastSeen: new Date(),
-      capacity: '64GB'
-    },
-    {
-      nom: 'WebCam-HD-001',
-      manufacturer: 'Logitech',
-      modele: 'C920 HD Pro',
-      type: 'webcam',
-      serialNumber: '1234567890AB',
-      statut: 'connected',
-      lastSeen: new Date(),
-      resolution: '1080p'
-    },
-    {
-      nom: 'Disque-Externe-001',
-      manufacturer: 'Seagate',
-      modele: 'Backup Plus Slim 2TB',
-      type: 'disque_dur',
-      serialNumber: 'NA4E5Y6F',
-      statut: 'connected',
-      lastSeen: new Date(),
-      capacity: '2TB'
-    }
-  ];
-
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return mockDevices;
-}
-
 // POST - Lancer une découverte d'équipements
 export async function POST(request: NextRequest) {
   try {
     const company = await getUserCompany(request);
     if (!company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const { type, range, filters } = discoverySchema.parse(body);
+    const { type, range, scanPorts, maxHosts, filters } = discoverySchema.parse(body);
 
-    let discoveredDevices: any[] = [];
+    let enrichedDevices: any[] = [];
 
-    switch (type) {
-      case 'network':
-        discoveredDevices = await discoverNetworkDevices(range);
-        break;
-      case 'bluetooth':
-        discoveredDevices = await discoverBluetoothDevices();
-        break;
-      case 'usb':
-        discoveredDevices = await discoverUSBDevices();
-        break;
-      case 'manual':
-        // Pour l'ajout manuel, on retourne un template
-        discoveredDevices = [{
-          nom: 'Nouvel équipement',
-          type: 'unknown',
-          statut: 'unknown',
-          lastSeen: new Date()
-        }];
-        break;
+    if (type === 'network') {
+      // ========================================================
+      //  VRAI SCAN RÉSEAU — Utilise les commandes système
+      // ========================================================
+      const { runNetworkScan, getLocalSubnet, getLocalNetworkInfo } = await import('@/lib/network-scanner');
+
+      const scanResult = await runNetworkScan({
+        range: range || getLocalSubnet(),
+        scanPorts: scanPorts !== false,
+        maxHosts: maxHosts || 50,
+      });
+
+      const localInfo = getLocalNetworkInfo();
+
+      enrichedDevices = scanResult.hosts.map(host => ({
+        id: `NET_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        companyId: company.id,
+        nom: host.hostname || `Hôte-${host.ip.split('.').pop()}`,
+        ipAddress: host.ip,
+        macAddress: host.mac,
+        manufacturer: host.manufacturer,
+        modele: null,
+        type: mapType(host.type),
+        os: host.os,
+        osVersion: null,
+        cpu: null,
+        ram: null,
+        stockage: null,
+        statut: host.status,
+        lastSeen: new Date(),
+        ports: host.openPorts,
+        services: host.services,
+        discoveredAt: host.discoveredAt,
+        source: `network (${scanResult.method})`,
+        confidence: host.confidence,
+        responseTime: host.responseTime,
+        warranty: null,
+        maintenance: estimateMaintenance(host.type),
+      }));
+
+      // Renvoyer aussi les infos réseau locales
+      return NextResponse.json({
+        success: true,
+        devices: enrichedDevices,
+        scanInfo: {
+          method: scanResult.method,
+          duration: scanResult.duration,
+          scannedRange: scanResult.scannedRange,
+          localInterfaces: localInfo,
+        },
+        summary: {
+          total: enrichedDevices.length,
+          online: enrichedDevices.filter((d: any) => d.statut === 'online').length,
+          offline: enrichedDevices.filter((d: any) => d.statut === 'offline').length,
+          withMAC: enrichedDevices.filter((d: any) => d.macAddress).length,
+          withPorts: enrichedDevices.filter((d: any) => d.ports?.length > 0).length,
+          byType: enrichedDevices.reduce((acc: any, device: any) => {
+            acc[device.type] = (acc[device.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
+        }
+      });
+
+    } else if (type === 'bluetooth') {
+      // Bluetooth — Toujours simulé (nécessite l'API WebBluetooth côté navigateur)
+      enrichedDevices = [
+        { id: `BT_${Date.now()}_1`, nom: 'Souris Bluetooth', type: 'souris', manufacturer: 'Logitech', modele: 'MX Master 3', statut: 'connected', source: 'bluetooth (simulé)', confidence: 60 },
+        { id: `BT_${Date.now()}_2`, nom: 'Clavier Bluetooth', type: 'clavier', manufacturer: 'Apple', modele: 'Magic Keyboard', statut: 'connected', source: 'bluetooth (simulé)', confidence: 60 },
+      ].map(d => ({ ...d, companyId: company.id, discoveredAt: new Date(), lastSeen: new Date() }));
+
+    } else if (type === 'usb') {
+      // USB — Toujours simulé (nécessite l'API WebUSB côté navigateur)
+      enrichedDevices = [
+        { id: `USB_${Date.now()}_1`, nom: 'Webcam HD', type: 'webcam', manufacturer: 'Logitech', modele: 'C920', statut: 'connected', source: 'usb (simulé)', confidence: 60 },
+      ].map(d => ({ ...d, companyId: company.id, discoveredAt: new Date(), lastSeen: new Date() }));
+
+    } else {
+      // Manuel
+      enrichedDevices = [{
+        id: `MAN_${Date.now()}`, companyId: company.id, nom: 'Nouvel équipement', type: 'inconnu',
+        statut: 'unknown', lastSeen: new Date(), discoveredAt: new Date(), source: 'manual', confidence: 100,
+      }];
     }
 
     // Appliquer les filtres
     if (filters) {
       if (filters.deviceTypes?.length) {
-        discoveredDevices = discoveredDevices.filter(device => 
-          filters.deviceTypes!.includes(device.type)
-        );
+        enrichedDevices = enrichedDevices.filter((d: any) => filters.deviceTypes!.includes(d.type));
       }
       if (filters.manufacturers?.length) {
-        discoveredDevices = discoveredDevices.filter(device => 
-          filters.manufacturers!.includes(device.manufacturer)
-        );
-      }
-      if (filters.osTypes?.length) {
-        discoveredDevices = discoveredDevices.filter(device => 
-          filters.osTypes!.includes(device.os)
-        );
+        enrichedDevices = enrichedDevices.filter((d: any) => filters.manufacturers!.includes(d.manufacturer));
       }
     }
-
-    // Enrichir les données avec des informations supplémentaires
-    const enrichedDevices = discoveredDevices.map(device => ({
-      ...device,
-      id: `DISCOVERED_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      companyId: company.id,
-      discoveredAt: new Date(),
-      source: type,
-      confidence: calculateConfidence(device),
-      warranty: estimateWarranty(device),
-      maintenance: estimateMaintenance(device)
-    }));
 
     return NextResponse.json({
       success: true,
       devices: enrichedDevices,
       summary: {
         total: enrichedDevices.length,
-        online: enrichedDevices.filter(d => d.statut === 'online').length,
-        offline: enrichedDevices.filter(d => d.statut === 'offline').length,
-        byType: enrichedDevices.reduce((acc, device) => {
+        online: enrichedDevices.filter((d: any) => d.statut === 'online' || d.statut === 'connected').length,
+        offline: enrichedDevices.filter((d: any) => d.statut === 'offline').length,
+        byType: enrichedDevices.reduce((acc: any, device: any) => {
           acc[device.type] = (acc[device.type] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)
@@ -314,116 +172,62 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erreur lors de la découverte:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la découverte des équipements' },
+      { error: 'Erreur lors de la découverte des équipements', details: String(error) },
       { status: 500 }
     );
   }
 }
 
-// Fonctions utilitaires
-function calculateConfidence(device: any): number {
-  let confidence = 50; // Base confidence
-  
-  if (device.manufacturer && device.modele) confidence += 20;
-  if (device.macAddress) confidence += 15;
-  if (device.ipAddress) confidence += 10;
-  if (device.os && device.osVersion) confidence += 5;
-  
-  return Math.min(confidence, 100);
-}
-
-function estimateWarranty(device: any): any {
-  // Simulation d'estimation de garantie basée sur le fabricant et le modèle
-  const warrantyPeriods: Record<string, number> = {
-    'Dell Inc.': 3,
-    'Apple Inc.': 1,
-    'HP': 2,
-    'Cisco Systems': 5,
-    'HPE': 3
-  };
-  
-  const period = warrantyPeriods[device.manufacturer] || 2;
-  const purchaseDate = new Date();
-  purchaseDate.setFullYear(purchaseDate.getFullYear() - period / 2);
-  
-  return {
-    period: period,
-    purchaseDate: purchaseDate.toISOString(),
-    expiryDate: new Date(purchaseDate.getFullYear() + period).toISOString(),
-    remaining: Math.max(0, period * 12 - 6) // mois restants
-  };
-}
-
-function estimateMaintenance(device: any): any {
-  // Simulation de planification de maintenance
-  const maintenanceIntervals: Record<string, number> = {
-    'serveur': 30, // jours
-    'ordinateur': 90,
-    'imprimante': 60,
-    'switch': 180,
-    'routeur': 120
-  };
-  
-  const interval = maintenanceIntervals[device.type] || 90;
-  const lastMaintenance = new Date();
-  lastMaintenance.setDate(lastMaintenance.getDate() - interval / 2);
-  const nextMaintenance = new Date(lastMaintenance);
-  nextMaintenance.setDate(nextMaintenance.getDate() + interval);
-  
-  return {
-    interval: interval,
-    lastMaintenance: lastMaintenance.toISOString(),
-    nextMaintenance: nextMaintenance.toISOString(),
-    priority: device.statut === 'offline' ? 'high' : 'medium'
-  };
-}
-
-// GET - Récupérer l'historique des découvertes
+// GET - Récupérer l'historique et les infos réseau
 export async function GET(request: NextRequest) {
   try {
     const company = await getUserCompany(request);
     if (!company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const source = searchParams.get('source');
-    const limit = parseInt(searchParams.get('limit') || '50');
-
-    // Pour l'instant, on simule la récupération depuis la base
-    // En production, il faudrait une table pour les équipements découverts
-    const mockHistory = [
-      {
-        id: 'DISCOVERY_001',
-        type: 'network',
-        devicesFound: 6,
-        duration: 2.3,
-        date: new Date(Date.now() - 24 * 60 * 60 * 1000), // hier
-        status: 'completed'
-      },
-      {
-        id: 'DISCOVERY_002',
-        type: 'bluetooth',
-        devicesFound: 3,
-        duration: 1.5,
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // avant-hier
-        status: 'completed'
-      }
-    ];
+    // Importer les infos réseau locales
+    const { getLocalNetworkInfo, getLocalSubnet } = await import('@/lib/network-scanner');
+    const localInfo = getLocalNetworkInfo();
+    const subnet = getLocalSubnet();
 
     return NextResponse.json({
-      history: mockHistory,
-      total: mockHistory.length
+      history: [],
+      total: 0,
+      networkInfo: {
+        interfaces: localInfo,
+        detectedSubnet: subnet,
+      }
     });
 
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'historique:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération de l\'historique' },
-      { status: 500 }
-    );
+    console.error('Erreur:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
+}
+
+// Helpers
+function mapType(type: string): string {
+  const mapping: Record<string, string> = {
+    'réseau': 'switch',
+    'machine_virtuelle': 'serveur',
+    'iot': 'iot',
+    'nas': 'serveur',
+    'smartphone': 'smartphone',
+    'ordinateur_portable': 'ordinateur',
+    'ordinateur': 'ordinateur',
+    'imprimante': 'imprimante',
+    'serveur': 'serveur',
+  };
+  return mapping[type] || type;
+}
+
+function estimateMaintenance(type: string) {
+  const intervals: Record<string, number> = {
+    'serveur': 30, 'ordinateur': 90, 'imprimante': 60, 'switch': 180, 'routeur': 120,
+  };
+  const interval = intervals[type] || 90;
+  const next = new Date();
+  next.setDate(next.getDate() + interval);
+  return { interval, nextMaintenance: next.toISOString(), priority: 'medium' };
 }
