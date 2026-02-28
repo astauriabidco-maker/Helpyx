@@ -189,6 +189,32 @@ const INTENT_PATTERNS: IntentPattern[] = [
         ],
         confidence: 0.85,
     },
+    // --- Garantie ---
+    {
+        intent: 'warranty_check',
+        category: 'Garantie',
+        patterns: [
+            /garantie/i, /sous\s*garantie/i, /encore.*garantie/i,
+            /expir.*garantie/i, /fin.*garantie/i, /couvert/i,
+            /warranty/i, /prise\s*en\s*charge/i,
+        ],
+        confidence: 0.95,
+        diagnosticFlow: 'warranty',
+    },
+    // --- Retour / RMA ---
+    {
+        intent: 'rma_return',
+        category: 'SAV',
+        patterns: [
+            /retour/i, /retourner/i, /rma/i, /renvoyer/i,
+            /rembours/i, /échange/i, /échanger/i, /remplacer/i,
+            /pas\s*satisfait/i, /défectueux/i, /panne/i,
+            /ne\s*fonctionne\s*(plus|pas)/i, /tombe.*panne/i,
+            /marche\s*(plus|pas)/i, /problème.*achat/i,
+        ],
+        confidence: 0.9,
+        diagnosticFlow: 'rma',
+    },
 ];
 
 export function detectIntent(message: string): { intent: string; category: string; confidence: number; diagnosticFlow?: string } {
@@ -478,6 +504,64 @@ const DIAGNOSTIC_FLOWS: Record<string, DiagnosticStep[]> = {
             ],
         },
     ],
+
+    warranty: [
+        {
+            question: "Pour vérifier votre garantie, j'ai besoin de votre **numéro de série** (visible sous l'appareil ou dans Paramètres > Système > À propos).\n\nVeuillez l'écrire ci-dessous :",
+            freeText: true,
+            options: [
+                { label: "🔍 Vérifier la garantie", value: "check", nextStep: 1 },
+            ],
+        },
+        {
+            question: "Je recherche votre équipement dans notre base...\n\n📋 Voici les informations que je vais vérifier :\n- Date d'achat\n- Durée de garantie (6, 12 ou 24 mois)\n- Garantie étendue éventuelle\n\nJe transmets votre numéro de série au système.",
+            options: [
+                { label: "✅ Mon appareil est trouvé", value: "found", nextStep: 'resolved' },
+                { label: "❌ Pas trouvé", value: "not_found", nextStep: 'escalate' },
+            ],
+        },
+    ],
+
+    rma: [
+        {
+            question: "Vous souhaitez retourner un produit acheté chez nous. Quel est le problème ?",
+            options: [
+                { label: "💥 Il est en panne", value: "defect", nextStep: 1 },
+                { label: "😕 Je ne suis pas satisfait", value: "unsatisfied", nextStep: 2 },
+                { label: "📦 Erreur de commande", value: "wrong_order", nextStep: 3 },
+                { label: "🔄 Je veux un échange", value: "exchange", nextStep: 1 },
+            ],
+        },
+        {
+            question: "Pouvez-vous décrire la panne ?\n\nExemples : écran noir, ne s'allume plus, bruits anormaux, surchauffe...",
+            freeText: true,
+            options: [
+                { label: "📝 Panne décrite", value: "described", nextStep: 4 },
+            ],
+        },
+        {
+            question: "Pourriez-vous préciser ce qui ne vous convient pas ?\n\nExemples : performances insuffisantes, état cosmétique, taille d'écran...",
+            freeText: true,
+            options: [
+                { label: "📝 Motif décrit", value: "described", nextStep: 4 },
+            ],
+        },
+        {
+            question: "Quel produit aviez-vous commandé et quel produit avez-vous reçu ?",
+            freeText: true,
+            options: [
+                { label: "📝 Erreur décrite", value: "described", nextStep: 4 },
+            ],
+        },
+        {
+            question: "Avez-vous votre **numéro de série** ou votre **numéro de facture** ?\n\nCela permet de vérifier automatiquement si votre garantie est active.",
+            freeText: true,
+            options: [
+                { label: "📝 Référence fournie", value: "ref_given", nextStep: 'escalate' },
+                { label: "❌ Je ne retrouve pas", value: "no_ref", nextStep: 'escalate' },
+            ],
+        },
+    ],
 };
 
 // ============================================================
@@ -485,7 +569,7 @@ const DIAGNOSTIC_FLOWS: Record<string, DiagnosticStep[]> = {
 // ============================================================
 
 const GREETING_RESPONSES = [
-    "Bonjour ! 👋 Je suis **Helix**, l'assistant IA de Helpyx. Comment puis-je vous aider aujourd'hui ?\n\nVoici ce que je peux faire :\n• 🖨️ Problème d'imprimante\n• 🌐 Problème réseau / internet\n• 🔑 Mot de passe oublié\n• 📧 Problème de messagerie\n• 💻 Problème matériel\n• 📦 Demande de matériel",
+    "Bonjour ! 👋 Je suis **Helix**, l'assistant IA de Helpyx. Comment puis-je vous aider aujourd'hui ?\n\nVoici ce que je peux faire :\n• 🖨️ Problème d'imprimante\n• 🌐 Problème réseau / internet\n• 🔑 Mot de passe oublié\n• 📧 Problème de messagerie\n• 💻 Problème matériel\n• 🛡️ Vérifier ma garantie\n• 🔄 Retourner un produit (RMA)\n• 📦 Demande de matériel",
     "Salut ! 😊 Je suis **Helix**, votre assistant support. Décrivez-moi votre problème et je vais essayer de le résoudre !",
 ];
 

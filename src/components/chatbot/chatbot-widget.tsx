@@ -60,14 +60,14 @@ export function ChatbotWidget() {
             setMessages([{
                 id: 'welcome',
                 role: 'assistant',
-                content: "Bonjour ! 👋 Je suis **Helix**, l'assistant IA de Helpyx.\n\nComment puis-je vous aider ?\n\n• 🖨️ Problème d'imprimante\n• 🌐 Problème réseau / internet\n• 🔑 Mot de passe oublié\n• 📧 Problème de messagerie\n• 💻 Problème matériel\n• 📦 Demande de matériel",
+                content: "Bonjour ! 👋 Je suis **Helix**, l'assistant IA de Helpyx.\n\nComment puis-je vous aider ?\n\n• 🖨️ Problème d'imprimante\n• 🌐 Problème réseau / internet\n• 🔑 Mot de passe oublié\n• 💻 Problème matériel\n• 🛡️ Vérifier ma garantie\n• 🔄 Retourner un produit (RMA)",
                 timestamp: new Date().toISOString(),
                 metadata: {
                     suggestedActions: [
                         { type: 'button', label: '🖨️ Imprimante', value: 'Mon imprimante ne marche plus' },
                         { type: 'button', label: '🌐 Réseau', value: 'Je n\'ai plus internet' },
-                        { type: 'button', label: '🔑 Mot de passe', value: 'J\'ai oublié mon mot de passe' },
-                        { type: 'button', label: '📧 Email', value: 'Problème avec ma messagerie' },
+                        { type: 'button', label: '🛡️ Garantie', value: 'Est-ce que mon appareil est encore sous garantie ?' },
+                        { type: 'button', label: '🔄 Retour SAV', value: 'Je veux retourner un produit en panne' },
                     ],
                 },
             }]);
@@ -186,8 +186,8 @@ export function ChatbotWidget() {
     return (
         <div
             className={`fixed z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-300 ${isMinimized
-                    ? 'bottom-6 right-6 w-80 h-14'
-                    : 'bottom-6 right-6 w-[420px] h-[600px] max-h-[80vh]'
+                ? 'bottom-6 right-6 w-80 h-14'
+                : 'bottom-6 right-6 w-[420px] h-[600px] max-h-[80vh]'
                 }`}
             style={{ fontFamily: "'Inter', sans-serif" }}
         >
@@ -234,8 +234,8 @@ export function ChatbotWidget() {
                                     <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                         {/* Avatar */}
                                         <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user'
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'
                                             }`}>
                                             {msg.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                                         </div>
@@ -243,8 +243,8 @@ export function ChatbotWidget() {
                                         <div>
                                             {/* Bulle */}
                                             <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                                                    ? 'bg-blue-600 text-white rounded-br-md'
-                                                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-md shadow-sm'
+                                                ? 'bg-blue-600 text-white rounded-br-md'
+                                                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-md shadow-sm'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }}
                                             />
@@ -257,12 +257,12 @@ export function ChatbotWidget() {
                                                             key={idx}
                                                             onClick={() => handleActionClick(action)}
                                                             className={`text-xs px-3 py-1.5 rounded-full border transition-all hover:scale-105 ${action.type === 'ticket' || action.type === 'escalate'
-                                                                    ? 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300'
-                                                                    : action.type === 'rate'
-                                                                        ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-950 dark:border-green-800 dark:text-green-300'
-                                                                        : action.type === 'link'
-                                                                            ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-300'
-                                                                            : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300'
+                                                                ? 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300'
+                                                                : action.type === 'rate'
+                                                                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-950 dark:border-green-800 dark:text-green-300'
+                                                                    : action.type === 'link'
+                                                                        ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-300'
+                                                                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300'
                                                                 }`}
                                                         >
                                                             {action.label}

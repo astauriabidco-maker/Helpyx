@@ -164,7 +164,11 @@ model User {
   // Behavioral relations
   behavioralAdaptations BehavioralAdaptation[]
 
-  @@unique([email, companyId]) // Unique email per company
+  // Achats / équipements possédés
+  equipments    ClientEquipment[]
+  rmas          RMA[]
+
+  @@unique([email, companyId])
   @@map("users")
 }
 
@@ -424,14 +428,37 @@ model Inventory {
   nom             String
   reference       String?  @unique
   description     String?
-  categorie       String?  // ex: RAM, CPU, GPU, SSD, etc.
+  categorie       String?  // ex: PC Portable, PC Bureau, Serveur, Accessoire
   quantite        Int      @default(0)
   seuilAlerte     Int      @default(5)  // Seuil pour alerte stock bas
   coutUnitaire    Float?   // Coût par unité
+  prixVente       Float?   // Prix de vente TTC
   fournisseur     String?  // Fournisseur principal
   emplacement     String?  // Emplacement dans le stock
   specifications  String?  // JSON pour détails techniques
   dateDernierInventaire DateTime? @map("date_dernier_inventaire")
+
+  // Reconditionnement
+  grade           GradeReconditionne @default(A)  // Grade de reconditionnement
+  marque          String?  // Dell, Lenovo, HP...
+  modele          String?  // ThinkPad T480, OptiPlex 7070...
+  processeur      String?  // Intel i5-8350U...
+  ram             String?  // 16 Go
+  stockage        String?  // 256 Go SSD
+  ecran           String?  // 14" FHD
+  systemeOs       String?  // Windows 11 Pro
+  cosmetique      String?  // Description état cosmétique
+  batteryCycles   Int?     // Nombre de cycles de batterie (portables)
+  batteryHealth   Int?     // Santé batterie en % (portables)
+
+  // Garantie
+  dureeGarantie   Int      @default(12)  // Durée en mois
+  dateAchatFournisseur DateTime? @map("date_achat_fournisseur")
+  dateTestQualite DateTime? @map("date_test_qualite")
+  testeePar       String?  // Qui a testé
+  notesTest       String?  // Notes du test qualité
+  statut          String   @default("en_stock") // en_stock, vendu, en_test, en_reparation, rma, rebut
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -440,10 +467,12 @@ model Inventory {
 
   // Relations
   company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  ticketItems    TicketInventoryItem[]
-  restockOrders  RestockOrder[]
+  ticketItems     TicketInventoryItem[]
+  restockOrders   RestockOrder[]
+  clientEquipments ClientEquipment[]  // Qui a acheté cette machine
+  rmas            RMA[]               // Retours associés
 
-  @@unique([reference, companyId]) // Unique reference per company
+  @@unique([reference, companyId])
   @@map("inventory")
 }
 
@@ -1446,4 +1475,136 @@ enum SkillLevel {
   INTERMEDIATE
   ADVANCED
   EXPERT
+}
+
+// ============================================================
+//  RECONDITIONNEMENT — Grades, Ventes Client, RMA
+// ============================================================
+
+enum GradeReconditionne {
+  A       // Comme neuf, aucune trace visible
+  B       // Très bon état, micro-rayures légères
+  C       // Bon état, traces d'usure visibles
+  D       // État correct, traces marquées (fonctionnel)
+}
+
+enum RMAStatus {
+  DEMANDE       // Client a demandé un retour
+  APPROUVE      // Retour approuvé, en attente du colis
+  RECU          // Colis reçu, en attente d'inspection
+  EN_INSPECTION // En cours d'inspection technique
+  REPARE        // Réparé, prêt à renvoyer
+  REMPLACEMENT  // Remplacement envoyé
+  REMBOURSE     // Remboursé
+  REFUSE        // Retour refusé (hors garantie, mauvais usage)
+  CLOTURE       // Dossier clôturé
+}
+
+// Lien entre un client et un équipement qu'il a acheté
+model ClientEquipment {
+  id              String    @id @default(cuid())
+  
+  // Qui a acheté
+  clientId        String
+  client          User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Quoi
+  inventoryId     String
+  inventory       Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  
+  // Détails de la vente
+  dateVente       DateTime  @default(now()) @map("date_vente")
+  prixVendu       Float?    // Prix effectivement vendu
+  numeroFacture   String?   // Référence facture
+  canal           String?   // boutique, site_web, marketplace
+  
+  // Garantie
+  debutGarantie   DateTime  @default(now()) @map("debut_garantie")
+  finGarantie     DateTime? @map("fin_garantie")
+  dureeGarantieMois Int     @default(12) // 6, 12, 24 mois
+  garantieEtendue Boolean  @default(false) // Garantie étendue achetée ?
+  
+  // Numéro de série spécifique à cette unité
+  numeroSerie     String?
+  
+  // Notes
+  notes           String?
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  rmas            RMA[]
+  
+  @@map("client_equipments")
+}
+
+// Module RMA — Retour Marchandise (SAV)
+model RMA {
+  id              String    @id @default(cuid())
+  reference       String    @unique // RMA-2024-001
+  
+  // Qui retourne
+  clientId        String
+  client          User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Quel équipement
+  inventoryId     String
+  inventory       Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  
+  // Lien avec la vente originale
+  clientEquipmentId String?
+  clientEquipment   ClientEquipment? @relation(fields: [clientEquipmentId], references: [id])
+  
+  // Lien avec un ticket SAV (optionnel)
+  ticketId        Int?
+  
+  // Statut
+  status          RMAStatus @default(DEMANDE)
+  
+  // Motif du retour
+  motif           String    // "Écran scintille", "Ne démarre plus"...
+  categorieMotif  String?   // PANNE, COSMÉTIQUE, ERREUR_COMMANDE, INSATISFACTION
+  description     String?   // Description détaillée
+  photosClient    String?   // JSON array de photos envoyées par le client
+  
+  // Diagnostic technique (rempli par le technicien)
+  diagnosticTech  String?   // Résultat de l'inspection
+  panneConfirmee  Boolean?  // La panne est-elle confirmée ?
+  reparable       Boolean?  // Est-ce réparable ?
+  coutReparation  Float?    // Coût estimé de la réparation
+  pieceNecessaire String?   // Pièces nécessaires
+  
+  // Décision
+  decision        String?   // REPARER, REMPLACER, REMBOURSER, REFUSER
+  motifRefus      String?   // Si refusé, pourquoi
+  
+  // Garantie
+  sousGarantie    Boolean   @default(true)
+  dateAchat       DateTime? // Date d'achat originale
+  finGarantie     DateTime? // Date de fin de garantie
+  
+  // Logistique
+  dateRetourClient DateTime? @map("date_retour_client")  // Quand le client a renvoyé
+  transporteur    String?   // Colissimo, DHL, etc.
+  numeroSuivi     String?   // Tracking number
+  dateReception   DateTime? @map("date_reception")       // Quand on a reçu le colis
+  dateExpeditionRetour DateTime? @map("date_expedition_retour") // Quand on renvoie
+  
+  // Financier
+  montantRembourse Float?
+  avoir            Float?    // Bon d'achat au lieu de remboursement
+  
+  // Résolution
+  equipementRemplacement String? // ID du nouvel équipement si remplacement
+  
+  // Multi-tenant
+  companyId       String
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  closedAt        DateTime? @map("closed_at")
+  
+  @@map("rmas")
 }
